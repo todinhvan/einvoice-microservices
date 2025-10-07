@@ -38,7 +38,11 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/invoice-e2e/**/*", "apps/invoice-e2e/**/*"]
+      "exclude": [
+        "apps/invoice-e2e/**/*",
+        "apps/invoice-e2e/**/*",
+        "apps/invoice-e2e/**/*"
+      ]
     }
   ]
 }
