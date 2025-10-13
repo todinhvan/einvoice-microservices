@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CONFIGURATION, TConfiguration } from '../configuration';
 import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { MongoProvider } from '@common/configuration/mongo.config';
 
 @Module({
   imports: [
@@ -11,7 +11,7 @@ import { MongooseModule } from '@nestjs/mongoose';
       isGlobal: true,
       load: [() => CONFIGURATION],
     }),
-    MongooseModule.forRoot('mongodb://root:password@localhost:27017/'),
+    MongoProvider,
   ],
   controllers: [AppController],
   providers: [AppService],
