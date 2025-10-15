@@ -5,7 +5,7 @@ import { Type } from '@nestjs/common';
 export class BaseSchema {
   _id: ObjectId;
 
-  @Virtual({ get: (docs: any) => docs._id.toString() })
+  @Virtual({ get: (docs: any) => docs?._id?.toString() })
   id: string;
 
   @Prop({ type: Date, default: new Date() })
