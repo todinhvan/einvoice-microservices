@@ -1,8 +1,9 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { ExchangeClientTokenResponse } from '@common/interfaces/common';
+import { ExchangeClientTokenResponse, ExchangeUserTokenResponse } from '@common/interfaces/common';
 import { CreateKeyCloakUserTcpRequest } from '@common/interfaces/tcp/keycloak';
+import { LoginRequestDTO } from '@common/interfaces/gateway/authorizer';
 
 @Injectable()
 export class KeycloakHttpService {
@@ -28,6 +29,24 @@ export class KeycloakHttpService {
     body.append('client_id', this.clientId);
     body.append('client_secret', this.clientSecret);
     body.append('scope', 'openid');
+
+    const { data } = await this.axiosInstance.post(`/realms/${this.realm}/protocol/openid-connect/token`, body, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    return data;
+  }
+
+  async exchangeUserToken({ username, password }: LoginRequestDTO): Promise<ExchangeUserTokenResponse> {
+    const body = new URLSearchParams();
+    body.append('grant_type', 'password');
+    body.append('client_id', this.clientId);
+    body.append('client_secret', this.clientSecret);
+    body.append('scope', 'openid');
+    body.append('username', username);
+    body.append('password', password);
 
     const { data } = await this.axiosInstance.post(`/realms/${this.realm}/protocol/openid-connect/token`, body, {
       headers: {
