@@ -1,10 +1,10 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { ObjectId } from 'mongodb';
-import { createSchema } from './base.schema';
+import { BaseSchema, createSchema } from './base.schema';
 import { Model } from 'mongoose';
 
 @Schema({ collection: 'user' })
-export class User {
+export class User extends BaseSchema {
   @Prop({ type: String })
   firstName: string;
 

@@ -14,6 +14,10 @@ export class UserRepository {
     return this.userModel.find().exec();
   }
 
+  getByUserId(userId: string) {
+    return this.userModel.findOne({ userId }).populate('roles').exec();
+  }
+
   async exists(email: string) {
     const result = await this.userModel.exists({ email }).exec();
     return !!result;

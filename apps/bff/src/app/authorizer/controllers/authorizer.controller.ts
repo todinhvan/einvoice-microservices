@@ -8,9 +8,11 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { map } from 'rxjs';
 import { LoginRequestDTO, LoginResponseDTO } from '@common/interfaces/gateway/authorizer';
 import { LoginTcpRequest, LoginTcpResponse } from '@common/interfaces/tcp/authorizer';
+import { Authorization } from '@common/decorators/authorizer.decorator';
 
 @Controller('authorizer')
 @ApiTags('BFF for Authorizer API')
+@Authorization({ secured: false })
 export class AuthorizerController {
   constructor(@Inject(TCP_SERVICES.AUTHORIZER_SERVICE) private readonly authorizerClient: TcpClient) {}
 

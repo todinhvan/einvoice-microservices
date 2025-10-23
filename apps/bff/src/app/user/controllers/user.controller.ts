@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Logger, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseDTO } from '@common/interfaces/gateway/response.interface';
 import { TCP_SERVICES } from '@common/configuration/tcp.config';
@@ -8,6 +8,9 @@ import { ProcessId } from '@common/decorators/process-id.decorator';
 import { map } from 'rxjs';
 import { CreateUserRequestDTO, UserResponseDTO } from '@common/interfaces/gateway/user';
 import { CreateUserTcpRequest, UserTcpResponse } from '@common/interfaces/tcp/user';
+import { Authorization } from '@common/decorators/authorizer.decorator';
+import { AuthorizedMetadata } from '@common/interfaces/tcp/authorizer';
+import { UserData } from '@common/decorators/user-data.decorator';
 
 @ApiTags('BFF for User API')
 @Controller('users')
@@ -17,7 +20,9 @@ export class UserController {
   @Post()
   @ApiOkResponse({ type: ResponseDTO<string> })
   @ApiOperation({ summary: 'Create a new user' })
-  create(@Body() data: CreateUserRequestDTO, @ProcessId() processId: string) {
+  @Authorization({ secured: true })
+  create(@Body() data: CreateUserRequestDTO, @ProcessId() processId: string, @UserData() userData: AuthorizedMetadata) {
+    Logger.log(`Metadata: ${userData}`);
     return this.userClient
       .send<string, CreateUserTcpRequest>(TCP_REQUEST_MESSAGE.USER.CREATE, {
         data,

@@ -2,12 +2,15 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CONFIGURATION, TConfiguration } from '../configuration';
 import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ExceptionInterceptor } from '@common/interceptors/exception.interceptor';
 import { InvoiceModule } from './invoice/invoice.module';
 import { ProductModule } from './product/product.module';
 import { UserModule } from './user/user.module';
 import { AuthorizerModule } from './authorizer/authorizer.module';
+import { UserGuard } from '@common/guards/user.guard';
+import { ClientsModule } from '@nestjs/microservices';
+import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
 
 @Module({
   imports: [
@@ -19,11 +22,16 @@ import { AuthorizerModule } from './authorizer/authorizer.module';
     ProductModule,
     UserModule,
     AuthorizerModule,
+    ClientsModule.registerAsync([TcpProvider(TCP_SERVICES.AUTHORIZER_SERVICE)]),
   ],
   providers: [
     {
       provide: APP_INTERCEPTOR,
       useClass: ExceptionInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: UserGuard,
     },
   ],
 })

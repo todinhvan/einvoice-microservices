@@ -25,4 +25,10 @@ export class UserController {
     const users = await this.userService.getAll();
     return Response.success<UserTcpResponse[]>(users);
   }
+
+  @MessagePattern(TCP_REQUEST_MESSAGE.USER.GET_BY_USER_ID)
+  async getByUserId(@RequestParams() userId: string) {
+    const user = await this.userService.getByUserId(userId);
+    return Response.success<UserTcpResponse>(user);
+  }
 }
