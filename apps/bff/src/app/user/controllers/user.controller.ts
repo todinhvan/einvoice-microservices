@@ -11,6 +11,8 @@ import { CreateUserTcpRequest, UserTcpResponse } from '@common/interfaces/tcp/us
 import { Authorization } from '@common/decorators/authorizer.decorator';
 import { AuthorizedMetadata } from '@common/interfaces/tcp/authorizer';
 import { UserData } from '@common/decorators/user-data.decorator';
+import { Permissions } from '@common/decorators/permission.decorator';
+import { PERMISSION } from '@common/constants/enums/permission.enum';
 
 @ApiTags('BFF for User API')
 @Controller('users')
@@ -21,6 +23,7 @@ export class UserController {
   @ApiOkResponse({ type: ResponseDTO<string> })
   @ApiOperation({ summary: 'Create a new user' })
   @Authorization({ secured: true })
+  @Permissions([PERMISSION.USER_CREATE])
   create(@Body() data: CreateUserRequestDTO, @ProcessId() processId: string, @UserData() userData: AuthorizedMetadata) {
     Logger.log(`Metadata: ${userData}`);
     return this.userClient
