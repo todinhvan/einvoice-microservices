@@ -13,6 +13,7 @@ import { ClientsModule } from '@nestjs/microservices';
 import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
 import { PermissionGuard } from '@common/guards/permission.guard';
 import { RedisProvider } from '@common/configuration/redis.config';
+import { GRPC_SERVICES, GRpcProvider } from '@common/configuration/grpc.config';
 
 @Module({
   imports: [
@@ -24,7 +25,10 @@ import { RedisProvider } from '@common/configuration/redis.config';
     ProductModule,
     UserModule,
     AuthorizerModule,
-    ClientsModule.registerAsync([TcpProvider(TCP_SERVICES.AUTHORIZER_SERVICE)]),
+    ClientsModule.registerAsync([
+      TcpProvider(TCP_SERVICES.AUTHORIZER_SERVICE),
+      GRpcProvider(GRPC_SERVICES.AUTHORIZER_SERVICE),
+    ]),
     RedisProvider,
   ],
   providers: [

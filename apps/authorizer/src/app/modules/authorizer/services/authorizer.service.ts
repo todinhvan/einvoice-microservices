@@ -11,16 +11,21 @@ import { TcpClient } from '@common/interfaces/tcp/common/tcp-client.interface';
 import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
 import { UserTcpResponse } from '@common/interfaces/tcp/user';
 import { Role } from '@common/schemas/role.schema';
+import { UserService } from '@common/interfaces/grpc/user';
+import { GRPC_SERVICES } from '@common/configuration/grpc.config';
+import { ClientGrpc } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthorizerService {
   private readonly logger = new Logger(AuthorizerService.name);
   private jwksClient: JwksClient;
+  private userService: UserService;
 
   constructor(
     private readonly keycloakHttpService: KeycloakHttpService,
     private readonly configService: ConfigService,
     @Inject(TCP_SERVICES.USER_ACCESS_SERVICE) private readonly userAccessClient: TcpClient,
+    @Inject(GRPC_SERVICES.USER_ACCESS_SERVICE) private readonly userAccessGrpcClient: ClientGrpc,
   ) {
     const host = this.configService.get<string>('KEYCLOAK_CONFIG.HOST');
     const realm = this.configService.get<string>('KEYCLOAK_CONFIG.REALM');
@@ -30,6 +35,10 @@ export class AuthorizerService {
       cache: true,
       rateLimit: true,
     });
+  }
+
+  onModuleInit() {
+    this.userService = this.userAccessGrpcClient.getService<UserService>('UserService');
   }
 
   async login(params: LoginTcpRequest) {
@@ -79,18 +88,20 @@ export class AuthorizerService {
   }
 
   async getUserInfo(token: string, processId: string) {
-    return firstValueFrom(
-      this.userAccessClient
-        .send<UserTcpResponse, string>(TCP_REQUEST_MESSAGE.USER.GET_BY_USER_ID, {
-          data: token,
-          processId,
-        })
-        .pipe(
-          map((data) => {
-            Logger.log('getUserInfo response data:', data);
-            return data.data;
-          }),
-        ),
-    );
+    // return firstValueFrom(
+    //   this.userAccessClient
+    //     .send<UserTcpResponse, string>(TCP_REQUEST_MESSAGE.USER.GET_BY_USER_ID, {
+    //       data: token,
+    //       processId,
+    //     })
+    //     .pipe(
+    //       map((data) => {
+    //         Logger.log('getUserInfo response data:', data);
+    //         return data.data;
+    //       }),
+    //     ),
+    // );
+    const response = await firstValueFrom(this.userService.getUserInfo({ token }));
+    return response.data;
   }
 }

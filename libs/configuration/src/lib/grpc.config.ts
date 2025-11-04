@@ -1,4 +1,5 @@
-import { GrpcOptions, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsProviderAsyncOptions, GrpcOptions, Transport } from '@nestjs/microservices';
 import { IsNotEmpty, IsObject } from 'class-validator';
 import { join } from 'path';
 
@@ -12,9 +13,9 @@ export class GrpcConfiguration {
   @IsNotEmpty()
   GRPC_AUTHORIZER_SERVICE: GrpcOptions & { name: string };
 
-  // @IsObject()
-  // @IsNotEmpty()
-  // GRPC_USER_ACCESS_SERVICE: GrpcOptions & { name: string };
+  @IsObject()
+  @IsNotEmpty()
+  GRPC_USER_ACCESS_SERVICE: GrpcOptions & { name: string };
 
   constructor() {
     this.GRPC_AUTHORIZER_SERVICE = GrpcConfiguration.setValue({
@@ -22,6 +23,13 @@ export class GrpcConfiguration {
       protoPath: ['./proto/authorizer.proto'],
       host: process.env['GRPC_AUTHORIZER_SERVICE_HOST'] || 'localhost',
       port: Number(process.env['GRPC_AUTHORIZER_SERVICE_PORT'] || 5100),
+    });
+
+    this.GRPC_USER_ACCESS_SERVICE = GrpcConfiguration.setValue({
+      key: GRPC_SERVICES.USER_ACCESS_SERVICE,
+      protoPath: ['./proto/user.proto'],
+      host: process.env['GRPC_USER_ACCESS_SERVICE_HOST'] || 'localhost',
+      port: Number(process.env['GRPC_USER_ACCESS_SERVICE_PORT'] || 5101),
     });
   }
 
@@ -48,4 +56,15 @@ export class GrpcConfiguration {
       },
     };
   }
+}
+
+export function GRpcProvider(serviceName: keyof GrpcConfiguration): ClientsProviderAsyncOptions {
+  return {
+    name: serviceName,
+    imports: [ConfigModule],
+    inject: [ConfigService],
+    useFactory: async (configService: ConfigService) => {
+      return configService.get(`GRPC_SERV.${serviceName}`) as GrpcOptions & { name: string };
+    },
+  };
 }

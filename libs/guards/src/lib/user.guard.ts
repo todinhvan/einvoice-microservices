@@ -10,16 +10,25 @@ import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { generateCacheKeyToken } from '@common/utils/string.util';
+import { GRPC_SERVICES } from '@common/configuration/grpc.config';
+import { ClientGrpc } from '@nestjs/microservices';
+import { AuthorizerService } from '@common/interfaces/grpc/authorizer';
 
 @Injectable()
 export class UserGuard implements CanActivate {
   private logger = new Logger(UserGuard.name);
+  private authorizerService: AuthorizerService;
 
   constructor(
     @Inject(TCP_SERVICES.AUTHORIZER_SERVICE) private readonly authorizerClient: TcpClient,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly reflector: Reflector,
+    @Inject(GRPC_SERVICES.AUTHORIZER_SERVICE) private readonly grpcAuthorizerClient: ClientGrpc,
   ) {}
+
+  onModuleInit() {
+    this.authorizerService = this.grpcAuthorizerClient.getService<AuthorizerService>('AuthorizerService');
+  }
 
   canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
     const authOptions = this.reflector.get<{ secured: boolean }>(MetadataKeys.SECURED, context.getHandler());
@@ -44,7 +53,8 @@ export class UserGuard implements CanActivate {
       }
 
       const processId = request[MetadataKeys.PROCESS_ID];
-      const result = await this.verifyUserToken(token, processId);
+      // const result = await this.verifyUserToken(token, processId);
+      const { data: result } = await firstValueFrom(this.authorizerService.verifyUserToken({ token, processId }));
       if (!result?.valid) {
         throw new UnauthorizedException('Invalid token');
       }

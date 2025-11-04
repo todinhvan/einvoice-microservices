@@ -30,8 +30,8 @@ module.exports = {
     // Header (toàn bộ commit message dòng đầu) tối thiểu 10 ký tự
     'header-min-length': [2, 'always', 10],
 
-    // Header tối đa 160 ký tự
-    'header-max-length': [2, 'always', 160],
+    // Header tối đa 300 ký tự
+    'header-max-length': [2, 'always', 300],
 
     // Body (nội dung chi tiết commit) mỗi dòng tối đa 120 ký tự
     'body-max-line-length': [2, 'always', 120],
