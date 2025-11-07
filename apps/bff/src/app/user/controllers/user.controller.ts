@@ -22,10 +22,10 @@ export class UserController {
   @Post()
   @ApiOkResponse({ type: ResponseDTO<string> })
   @ApiOperation({ summary: 'Create a new user' })
-  @Authorization({ secured: true })
-  @Permissions([PERMISSION.USER_CREATE])
-  create(@Body() data: CreateUserRequestDTO, @ProcessId() processId: string, @UserData() userData: AuthorizedMetadata) {
-    Logger.log(`Metadata: ${userData}`);
+  // @Authorization({ secured: true })
+  // @Permissions([PERMISSION.USER_CREATE])
+  create(@Body() data: CreateUserRequestDTO, @ProcessId() processId: string) {
+    // Logger.log(`Metadata: ${userData}`);
     return this.userClient
       .send<string, CreateUserTcpRequest>(TCP_REQUEST_MESSAGE.USER.CREATE, {
         data,
