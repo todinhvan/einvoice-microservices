@@ -17,7 +17,7 @@ export class InvoicePdfService {
       items: invoice.items,
       vatAmount: invoice.vatAmount,
       totalAmount: invoice.totalAmount,
-      subTotal: subTotal,
+      subtotal: subTotal,
     };
 
     return this.pdfService.generatePdfFromEjs(templatePath, data);
