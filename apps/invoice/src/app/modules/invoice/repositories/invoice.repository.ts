@@ -22,6 +22,10 @@ export class InvoiceRepository {
     return this.invoiceModel.findByIdAndUpdate(id, data, { new: true });
   }
 
+  changeStatus(id: string, status: INVOICE_STATUS) {
+    return this.invoiceModel.findByIdAndUpdate(id, { status }, { new: true });
+  }
+
   deleteById(id: string) {
     return this.invoiceModel.findByIdAndDelete(id);
   }

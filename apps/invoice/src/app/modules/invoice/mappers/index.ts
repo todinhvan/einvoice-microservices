@@ -6,3 +6,15 @@ export const invoiceRequestMapping = (payload: CreateInvoiceTcpRequest): Partial
   totalAmount: payload.items.reduce((acc, item) => acc + item.total, 0),
   vatAmount: payload.items.reduce((acc, item) => acc + item.unitPrice * item.quantity * (item.vatRate / 100), 0),
 });
+
+export const createCheckoutInvoiceMapping = (invoice: Invoice) => {
+  return {
+    invoiceId: invoice.id,
+    clientEmail: invoice.client.email,
+    lineItems: invoice.items.map((item) => ({
+      name: item.name,
+      price: item.total,
+      quantity: item.quantity,
+    })),
+  };
+};

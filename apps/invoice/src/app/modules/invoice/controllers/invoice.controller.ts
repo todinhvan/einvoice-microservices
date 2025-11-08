@@ -5,8 +5,14 @@ import { Response } from '@common/interfaces/tcp/common/response.interface';
 import { RequestParams } from '@common/decorators/request-param.decorator';
 import { InvoiceService } from '../services/invoice.service';
 import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
-import { CreateInvoiceTcpRequest, InvoiceTcpResponse, SendInvoiceTcpRequest } from '@common/interfaces/tcp/invoice';
+import {
+  ChangeInvoiceStatusTcpRequest,
+  CreateInvoiceTcpRequest,
+  InvoiceTcpResponse,
+  SendInvoiceTcpRequest,
+} from '@common/interfaces/tcp/invoice';
 import { ProcessId } from '@common/decorators/process-id.decorator';
+import { HttpMessage } from '@common/constants/enums/http-message.constant';
 
 @Controller()
 @UseInterceptors(TcpLoggingInterceptor)
@@ -25,5 +31,11 @@ export class InvoiceController {
   ): Promise<Response<string>> {
     const result = await this.invoiceService.sendById(params, processId);
     return Response.success<string>(result);
+  }
+
+  @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.CHANGE_STATUS)
+  async changeStatus(@RequestParams() params: ChangeInvoiceStatusTcpRequest): Promise<Response<string>> {
+    await this.invoiceService.changeStatus(params);
+    return Response.success<string>(HttpMessage.UPDATED);
   }
 }

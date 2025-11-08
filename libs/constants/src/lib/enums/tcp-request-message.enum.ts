@@ -3,6 +3,7 @@ enum INVOICE {
   GET_ALL = 'invoice.get_all',
   GET_BY_ID = 'invoice.get_by_id',
   UPDATE_BY_ID = 'invoice.update_by_id',
+  CHANGE_STATUS = 'invoice.change_status',
   DELETE_BY_ID = 'invoice.delete_by_id',
   SEND = 'invoice.send',
 }

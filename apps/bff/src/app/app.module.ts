@@ -14,6 +14,7 @@ import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
 import { PermissionGuard } from '@common/guards/permission.guard';
 import { RedisProvider } from '@common/configuration/redis.config';
 import { GRPC_SERVICES, GRpcProvider } from '@common/configuration/grpc.config';
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { GRPC_SERVICES, GRpcProvider } from '@common/configuration/grpc.config';
       GRpcProvider(GRPC_SERVICES.AUTHORIZER_SERVICE),
     ]),
     RedisProvider,
+    WebhookModule,
   ],
   providers: [
     {

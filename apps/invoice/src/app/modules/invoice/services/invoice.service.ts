@@ -1,7 +1,11 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InvoiceRepository } from '../repositories/invoice.repository';
-import { CreateInvoiceTcpRequest, SendInvoiceTcpRequest } from '@common/interfaces/tcp/invoice';
-import { invoiceRequestMapping } from '../mappers';
+import {
+  ChangeInvoiceStatusTcpRequest,
+  CreateInvoiceTcpRequest,
+  SendInvoiceTcpRequest,
+} from '@common/interfaces/tcp/invoice';
+import { createCheckoutInvoiceMapping, invoiceRequestMapping } from '../mappers';
 import { INVOICE_STATUS } from '@common/constants/enums/invoice.enum';
 import { TCP_SERVICES } from '@common/configuration/tcp.config';
 import { TcpClient } from '@common/interfaces/tcp/common/tcp-client.interface';
@@ -10,6 +14,7 @@ import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message
 import { firstValueFrom, map } from 'rxjs';
 import { ObjectId } from 'mongodb';
 import { UploadFileTcpRequest } from '@common/interfaces/tcp/media';
+import { PaymentService } from '../../payment/services/payment.service';
 
 @Injectable()
 export class InvoiceService {
@@ -17,6 +22,7 @@ export class InvoiceService {
     private readonly invoiceRepository: InvoiceRepository,
     @Inject(TCP_SERVICES.PDF_GENERATOR_SERVICE) private readonly pdfGeneratorClient: TcpClient,
     @Inject(TCP_SERVICES.MEDIA_SERVICE) private readonly mediaClient: TcpClient,
+    private readonly paymentService: PaymentService,
   ) {}
 
   create(payload: CreateInvoiceTcpRequest) {
@@ -39,13 +45,19 @@ export class InvoiceService {
       processId,
     );
 
+    const result = await this.paymentService.createCheckoutSession(createCheckoutInvoiceMapping(invoice));
+
     await this.invoiceRepository.updateById(params.invoiceId, {
       status: INVOICE_STATUS.SENT,
       supervisorId: new ObjectId(params.userId),
       fileUrl,
     });
 
-    return fileUrl;
+    return result.url;
+  }
+
+  async changeStatus(params: ChangeInvoiceStatusTcpRequest) {
+    return await this.invoiceRepository.changeStatus(params.invoiceId, params.status);
   }
 
   private generateInvoicePdf(invoice: Invoice, processId: string) {

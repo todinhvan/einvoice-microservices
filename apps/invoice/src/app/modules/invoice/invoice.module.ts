@@ -7,6 +7,7 @@ import { InvoiceDestination } from '@common/schemas/invoice.schema';
 import { InvoiceRepository } from './repositories/invoice.repository';
 import { ClientsModule } from '@nestjs/microservices';
 import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
       TcpProvider(TCP_SERVICES.PDF_GENERATOR_SERVICE),
       TcpProvider(TCP_SERVICES.MEDIA_SERVICE),
     ]),
+    PaymentModule,
   ],
   controllers: [InvoiceController],
   providers: [InvoiceService, InvoiceRepository],
