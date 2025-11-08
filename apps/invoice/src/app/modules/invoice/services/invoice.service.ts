@@ -9,12 +9,14 @@ import { Invoice } from '@common/schemas/invoice.schema';
 import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
 import { firstValueFrom, map } from 'rxjs';
 import { ObjectId } from 'mongodb';
+import { UploadFileTcpRequest } from '@common/interfaces/tcp/media';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     private readonly invoiceRepository: InvoiceRepository,
     @Inject(TCP_SERVICES.PDF_GENERATOR_SERVICE) private readonly pdfGeneratorClient: TcpClient,
+    @Inject(TCP_SERVICES.MEDIA_SERVICE) private readonly mediaClient: TcpClient,
   ) {}
 
   create(payload: CreateInvoiceTcpRequest) {
@@ -32,13 +34,18 @@ export class InvoiceService {
     }
 
     const pdfBase64 = await this.generateInvoicePdf(invoice, processId);
+    const fileUrl = await this.uploadFileToStorage(
+      { fileBase64: pdfBase64, fileName: `invoice_${invoice.id}` },
+      processId,
+    );
 
     await this.invoiceRepository.updateById(params.invoiceId, {
       status: INVOICE_STATUS.SENT,
       supervisorId: new ObjectId(params.userId),
+      fileUrl,
     });
 
-    return pdfBase64;
+    return fileUrl;
   }
 
   private generateInvoicePdf(invoice: Invoice, processId: string) {
@@ -46,6 +53,17 @@ export class InvoiceService {
       this.pdfGeneratorClient
         .send<string, Invoice>(TCP_REQUEST_MESSAGE.PDF_GENERATOR.GENERATE_INVOICE_PDF, {
           data: invoice,
+          processId,
+        })
+        .pipe(map((response) => response.data)),
+    );
+  }
+
+  private uploadFileToStorage(data: UploadFileTcpRequest, processId: string) {
+    return firstValueFrom(
+      this.mediaClient
+        .send<string, UploadFileTcpRequest>(TCP_REQUEST_MESSAGE.MEDIA.UPLOAD_FILE, {
+          data,
           processId,
         })
         .pipe(map((response) => response.data)),
