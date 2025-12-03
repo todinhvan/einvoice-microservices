@@ -5,9 +5,11 @@ import { MongoProvider } from '@common/configuration/mongo.config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { InvoiceDestination } from '@common/schemas/invoice.schema';
 import { InvoiceRepository } from './repositories/invoice.repository';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientsModule } from '@nestjs/microservices';
 import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
 import { PaymentModule } from '../payment/payment.module';
+import { KafkaModule } from '@common/kafka/kafka.module';
+import { QUEUE_SERVICES } from '@common/constants/enums/queue-groups.enum';
 
 @Module({
   imports: [
@@ -18,18 +20,7 @@ import { PaymentModule } from '../payment/payment.module';
       TcpProvider(TCP_SERVICES.MEDIA_SERVICE),
     ]),
     PaymentModule,
-    ClientsModule.register([
-      {
-        name: 'INVOICE_SERVICE',
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            clientId: 'invoice-client-id',
-            brokers: ['localhost:9092'],
-          },
-        },
-      },
-    ]),
+    KafkaModule.register(QUEUE_SERVICES.INVOICE),
   ],
   controllers: [InvoiceController],
   providers: [InvoiceService, InvoiceRepository],
