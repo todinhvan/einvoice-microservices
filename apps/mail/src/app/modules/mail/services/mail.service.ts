@@ -2,11 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
 import { SendMailOptions } from '@common/interfaces/common';
+import { join } from 'path';
+import { renderFile } from 'ejs';
 
 @Injectable()
 export class MailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(MailService.name);
+  private templateDir = join(__dirname, 'templates');
 
   constructor(private readonly configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
@@ -40,5 +43,11 @@ export class MailService {
       this.logger.error(`Error sending email to ${to}:`, error);
       throw error;
     }
+  }
+
+  async renderTemplate(templateName: string, data: any): Promise<string> {
+    const content = await renderFile(join(this.templateDir, `${templateName}.template.ejs`), data);
+    const html = await renderFile(join(this.templateDir, 'layout.template.ejs'), { content });
+    return html;
   }
 }

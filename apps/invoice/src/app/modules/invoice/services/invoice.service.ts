@@ -16,6 +16,7 @@ import { ObjectId } from 'mongodb';
 import { UploadFileTcpRequest } from '@common/interfaces/tcp/media';
 import { PaymentService } from '../../payment/services/payment.service';
 import { KafkaService } from '@common/kafka/kafka.service';
+import { InvoiceSendPayload } from '@common/interfaces/queue/invoice';
 
 @Injectable()
 export class InvoiceService {
@@ -26,6 +27,14 @@ export class InvoiceService {
     private readonly paymentService: PaymentService,
     private readonly mailKafkaClient: KafkaService,
   ) {}
+
+  async getById(id: string) {
+    const invoice = await this.invoiceRepository.findById(id);
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+    return invoice;
+  }
 
   create(payload: CreateInvoiceTcpRequest) {
     const input = invoiceRequestMapping(payload);
@@ -55,12 +64,10 @@ export class InvoiceService {
       fileUrl,
     });
 
-    this.mailKafkaClient.emit('invoice-sent', {
+    this.mailKafkaClient.emit<InvoiceSendPayload>('invoice-sent', {
       invoiceId: invoice.id,
-      clientMail: invoice.client.email,
+      paymentLink: result.url,
     });
-
-    return result.url;
   }
 
   async changeStatus(params: ChangeInvoiceStatusTcpRequest) {

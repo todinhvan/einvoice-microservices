@@ -19,6 +19,12 @@ import { HttpMessage } from '@common/constants/enums/http-message.constant';
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
+  @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.GET_BY_ID)
+  async getById(@RequestParams() params: string): Promise<Response<InvoiceTcpResponse>> {
+    const invoice = await this.invoiceService.getById(params);
+    return Response.success<InvoiceTcpResponse>(invoice);
+  }
+
   @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.CREATE)
   async create(@RequestParams() params: CreateInvoiceTcpRequest): Promise<Response<InvoiceTcpResponse>> {
     const invoice = await this.invoiceService.create(params);
@@ -29,8 +35,8 @@ export class InvoiceController {
     @RequestParams() params: SendInvoiceTcpRequest,
     @ProcessId() processId: string,
   ): Promise<Response<string>> {
-    const result = await this.invoiceService.sendById(params, processId);
-    return Response.success<string>(result);
+    await this.invoiceService.sendById(params, processId);
+    return Response.success<string>(HttpMessage.SENT);
   }
 
   @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.CHANGE_STATUS)
