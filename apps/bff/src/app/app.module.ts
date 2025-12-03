@@ -15,6 +15,8 @@ import { PermissionGuard } from '@common/guards/permission.guard';
 import { RedisProvider } from '@common/configuration/redis.config';
 import { GRPC_SERVICES, GRpcProvider } from '@common/configuration/grpc.config';
 import { WebhookModule } from './webhook/webhook.module';
+import { ThrottlerProvider } from '@common/configuration/throttler.config';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { WebhookModule } from './webhook/webhook.module';
     ]),
     RedisProvider,
     WebhookModule,
+    ThrottlerProvider,
   ],
   providers: [
     {
@@ -45,6 +48,10 @@ import { WebhookModule } from './webhook/webhook.module';
     {
       provide: APP_GUARD,
       useClass: PermissionGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
