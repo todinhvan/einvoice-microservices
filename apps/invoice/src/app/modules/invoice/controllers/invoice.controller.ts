@@ -1,47 +1,51 @@
 import { Controller, UseInterceptors } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
-import { TcpLoggingInterceptor } from '@common/interceptors/tcp-logging.interceptor';
-import { Response } from '@common/interfaces/tcp/common/response.interface';
-import { RequestParams } from '@common/decorators/request-param.decorator';
+import { TcpLoggingInterceptor } from '@shared/interceptors/tcp-logging.interceptor';
 import { InvoiceService } from '../services/invoice.service';
-import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
+import { RequestTCP, ResponseTCP } from '@shared/contracts/tcp/tcp-client.interface';
+import { RequestParams } from '@shared/decorators/request-param.decorator';
 import {
-  ChangeInvoiceStatusTcpRequest,
-  CreateInvoiceTcpRequest,
-  InvoiceTcpResponse,
-  SendInvoiceTcpRequest,
-} from '@common/interfaces/tcp/invoice';
-import { ProcessId } from '@common/decorators/process-id.decorator';
-import { HttpMessage } from '@common/constants/enums/http-message.constant';
+  ChangeInvoiceStatusTCP,
+  CreateInvoiceTCP,
+  SendInvoiceTCP,
+} from '@shared/contracts/invoice/invoice-request.type';
+import { MessagePattern } from '@nestjs/microservices';
+import { TcpMessages } from '@shared/constants/enums/tcp-message.enum';
+import { AuthData } from '@shared/decorators/auth-data.decorator';
+import { HttpMessages } from '@shared/constants/enums/http-message.enum';
+import { TcpTracingInterceptor } from '@shared/interceptors/tcp-tracing.interceptor';
 
 @Controller()
-@UseInterceptors(TcpLoggingInterceptor)
+@UseInterceptors(TcpLoggingInterceptor, TcpTracingInterceptor)
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.GET_BY_ID)
-  async getById(@RequestParams() params: string): Promise<Response<InvoiceTcpResponse>> {
-    const invoice = await this.invoiceService.getById(params);
-    return Response.success<InvoiceTcpResponse>(invoice);
+  @MessagePattern(TcpMessages.INVOICE.CREATE)
+  async createInvoice(@RequestParams() params: RequestTCP<CreateInvoiceTCP>) {
+    const invoice = await this.invoiceService.createInvoice(params.data, params.processId);
+    return ResponseTCP.success(invoice);
   }
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.CREATE)
-  async create(@RequestParams() params: CreateInvoiceTcpRequest): Promise<Response<InvoiceTcpResponse>> {
-    const invoice = await this.invoiceService.create(params);
-    return Response.success<InvoiceTcpResponse>(invoice);
-  }
-  @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.SEND)
-  async send(
-    @RequestParams() params: SendInvoiceTcpRequest,
-    @ProcessId() processId: string,
-  ): Promise<Response<string>> {
-    await this.invoiceService.sendById(params, processId);
-    return Response.success<string>(HttpMessage.SENT);
+  @MessagePattern(TcpMessages.INVOICE.SEND)
+  async sendInvoice(@RequestParams() params: RequestTCP<SendInvoiceTCP>, @AuthData('userId') userId: string) {
+    const result = await this.invoiceService.sendInvoice(params.data, params.processId, userId);
+    return ResponseTCP.success(result);
   }
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.INVOICE.CHANGE_STATUS)
-  async changeStatus(@RequestParams() params: ChangeInvoiceStatusTcpRequest): Promise<Response<string>> {
-    await this.invoiceService.changeStatus(params);
-    return Response.success<string>(HttpMessage.UPDATED);
+  @MessagePattern(TcpMessages.INVOICE.CHANGE_STATUS)
+  async changeInvoiceStatus(@RequestParams('data') data: ChangeInvoiceStatusTCP) {
+    await this.invoiceService.changeStatus(data);
+    return ResponseTCP.success(HttpMessages.UPDATED);
+  }
+
+  @MessagePattern(TcpMessages.INVOICE.GET)
+  async getInvoice(@RequestParams('data') data: string) {
+    const invoice = await this.invoiceService.getInvoice(data);
+    return ResponseTCP.success(invoice);
+  }
+
+  @MessagePattern(TcpMessages.INVOICE.GET_ALL)
+  async getInvoices() {
+    const invoices = await this.invoiceService.getInvoices();
+    return ResponseTCP.success(invoices);
   }
 }

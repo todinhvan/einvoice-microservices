@@ -1,83 +1,83 @@
 import { Injectable, CanActivate, ExecutionContext, Logger, UnauthorizedException, Inject } from '@nestjs/common';
-import { firstValueFrom, map, Observable } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { Reflector } from '@nestjs/core';
-import { MetadataKeys } from '@common/constants/common.constant';
-import { getAccessToken, setUserData } from '@common/utils/request.util';
-import { TCP_SERVICES } from '@common/configuration/tcp.config';
-import { TcpClient } from '@common/interfaces/tcp/common/tcp-client.interface';
-import { AuthorizerResponse } from '@common/interfaces/tcp/authorizer';
-import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
+import { MetadataKeys } from '@shared/constants/enums/metadata-key.enum';
+import { Request } from 'express';
+import { getAccessToken, setAuthorizedMetadata } from '@shared/utils/request.util';
+import { ErrorMessages } from '@shared/constants/enums/error-message.enum';
+import { TcpServices } from '@shared/constants/enums/tcp-service.enum';
+import { TcpClient } from '@shared/contracts/tcp/tcp-client.interface';
+import { AuthorizedMetadata } from '@shared/contracts/authorizer/authorizer-response.type';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { generateCacheKeyToken } from '@common/utils/string.util';
-import { GRPC_SERVICES } from '@common/configuration/grpc.config';
+import { generateCacheToken } from '@shared/utils/string.util';
+import { GrpcServices } from '@shared/constants/enums/grpc-service.enum';
 import { ClientGrpc } from '@nestjs/microservices';
-import { AuthorizerService } from '@common/interfaces/grpc/authorizer';
+import { AuthorizerService } from '@shared/contracts/grpc/authorizer/authorizer.interface';
 
 @Injectable()
 export class UserGuard implements CanActivate {
   private logger = new Logger(UserGuard.name);
   private authorizerService: AuthorizerService;
-
   constructor(
-    @Inject(TCP_SERVICES.AUTHORIZER_SERVICE) private readonly authorizerClient: TcpClient,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private readonly reflector: Reflector,
-    @Inject(GRPC_SERVICES.AUTHORIZER_SERVICE) private readonly grpcAuthorizerClient: ClientGrpc,
+    private reflector: Reflector,
+    @Inject(TcpServices.AUTHORIZER) private readonly authorizerClient: TcpClient,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(GrpcServices.AUTHORIZER) private readonly authorizerGrpcClient: ClientGrpc,
   ) {}
 
   onModuleInit() {
-    this.authorizerService = this.grpcAuthorizerClient.getService<AuthorizerService>('AuthorizerService');
+    this.authorizerService = this.authorizerGrpcClient.getService<AuthorizerService>('AuthorizerService');
   }
 
-  canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
-    const authOptions = this.reflector.get<{ secured: boolean }>(MetadataKeys.SECURED, context.getHandler());
-    const request = context.switchToHttp().getRequest();
-
-    if (!authOptions?.secured) {
-      return true;
-    }
-
-    return this.verifyToken(request);
-  }
-
-  private async verifyToken(request: any) {
-    try {
-      const token = getAccessToken(request);
-      const cacheKey = generateCacheKeyToken(token);
-
-      const cacheData = await this.cacheManager.get<AuthorizerResponse>(cacheKey);
-      if (cacheData) {
-        setUserData(request, cacheData);
-        return true;
-      }
-
-      const processId = request[MetadataKeys.PROCESS_ID];
-      // const result = await this.verifyUserToken(token, processId);
-      const { data: result } = await firstValueFrom(this.authorizerService.verifyUserToken({ token, processId }));
-      if (!result?.valid) {
-        throw new UnauthorizedException('Invalid token');
-      }
-
-      this.logger.debug(`Caching user data with key: ${cacheKey}`);
-      this.cacheManager.set(cacheKey, result);
-      setUserData(request, result);
-
-      return true;
-    } catch (error) {
-      this.logger.error({ error });
-      throw new UnauthorizedException('Invalid token');
-    }
-  }
-
-  private async verifyUserToken(token: string, processId: string) {
-    return firstValueFrom(
-      this.authorizerClient
-        .send<AuthorizerResponse, string>(TCP_REQUEST_MESSAGE.AUTHORIZER.VERIFY_USER_TOKEN, {
-          data: token,
-          processId,
-        })
-        .pipe(map((data) => data.data)),
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request: Request & { [MetadataKeys.PROCESS_ID]: string } = context.switchToHttp().getRequest();
+    const authorizationData = this.reflector.get<{ [MetadataKeys.SECURED]: boolean }>(
+      MetadataKeys.SECURED,
+      context.getHandler(),
     );
+    if (!authorizationData || !authorizationData[MetadataKeys.SECURED]) {
+      return true;
+    }
+
+    const token = getAccessToken(request);
+    Logger.log(`Token: ${token}`);
+    if (!token) {
+      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
+    }
+
+    const cacheToken = generateCacheToken(token);
+    const authorizedData = (await this.cacheManager.get(cacheToken)) as AuthorizedMetadata | undefined;
+    if (authorizedData) {
+      Logger.log('Data from cache');
+      setAuthorizedMetadata(request, authorizedData);
+      return true;
+    }
+
+    const processId = request[MetadataKeys.PROCESS_ID];
+    const authorizerResponse = await this.verifyToken(token, processId);
+    if (!authorizerResponse || authorizerResponse.valid === false || !authorizerResponse.metadata) {
+      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
+    }
+
+    setAuthorizedMetadata(request, authorizerResponse.metadata);
+    this.cacheManager.set(cacheToken, authorizerResponse.metadata);
+    Logger.log('Data from authorizer');
+    return true;
+  }
+
+  private async verifyToken(token: string, processId: string) {
+    try {
+      // return await firstValueFrom(
+      //   this.authorizerClient
+      //     .send<AuthorizerResponse, string>(TcpMessages.AUTHORIZER.VERIFY_TOKEN, { processId, data: token })
+      //     .pipe(map((response) => response.data)),
+      // );
+      return await firstValueFrom(
+        this.authorizerService.verifyToken({ token, processId }).pipe(map((response) => response.data)),
+      );
+    } catch {
+      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
+    }
   }
 }

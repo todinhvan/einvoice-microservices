@@ -62,12 +62,12 @@ async function bootstrap() {
   }
 
   // lấy connection string từ ENV service
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  const mongoUri = process.env.USER_ACCESS_DB_URI || 'mongodb://localhost:27017';
   const client = new MongoClient(mongoUri);
 
   try {
     await client.connect();
-    const db = client.db(process.env.MONGODB_DB_NAME || 'einvoice-app');
+    const db = client.db(process.env.USER_ACCESS_DB_NAME || 'user_access_db');
 
     const files = fs.readdirSync(absoluteDir).filter((f) => f.endsWith('.json'));
 

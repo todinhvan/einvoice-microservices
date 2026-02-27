@@ -1,7 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InvoiceStatuses } from '@shared/constants/enums/invoice.enum';
 import { BaseSchema, createSchema } from './base.schema';
-import { INVOICE_STATUS } from '@common/constants/enums/invoice.enum';
 import { ObjectId } from 'mongodb';
 
 export class Client {
@@ -16,8 +15,8 @@ export class Client {
 }
 
 export class Item {
-  @Prop({ type: String })
-  productId: string;
+  @Prop({ type: Number })
+  productId: number;
 
   @Prop({ type: String })
   name: string;
@@ -40,30 +39,27 @@ export class Invoice extends BaseSchema {
   @Prop({ type: Client })
   client: Client;
 
+  @Prop({ type: [Item] })
+  items: Item[];
+
   @Prop({ type: Number })
   totalAmount: number;
 
   @Prop({ type: Number })
   vatAmount: number;
 
-  @Prop({ type: String, enum: INVOICE_STATUS, default: INVOICE_STATUS.CREATED })
-  status: INVOICE_STATUS;
+  @Prop({ type: String, enum: InvoiceStatuses, default: InvoiceStatuses.CREATED })
+  status: InvoiceStatuses;
 
-  @Prop({ type: [Item] })
-  items: Item[];
-
-  @Prop({ type: ObjectId, required: false, ref: 'User' })
+  @Prop({ type: ObjectId, required: false })
   supervisorId?: ObjectId;
 
   @Prop({ type: String, required: false })
   fileUrl?: string;
 }
 
-export const InvoiceSchema = createSchema(Invoice);
-export const InvoiceModelName = Invoice.name;
-export const InvoiceDestination = {
-  name: InvoiceModelName,
+const InvoiceSchema = createSchema(Invoice);
+export const InvoiceDefinition = {
+  name: Invoice.name,
   schema: InvoiceSchema,
 };
-
-export type TInvoiceModel = Model<Invoice>;

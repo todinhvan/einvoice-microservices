@@ -1,30 +1,44 @@
-import { BaseConfiguration } from '@common/configuration/base.config';
-import { AppConfiguration } from '@common/configuration/app.config';
+import { AppConfiguration } from '@shared/configurations/app.config';
+import { BaseConfiguration } from '@shared/configurations/base.config';
+import { MongoConfiguration } from '@shared/configurations/mongo.config';
+import { TcpConfiguration } from '@shared/configurations/tcp.config';
 import { ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TcpConfiguration } from '@common/configuration/tcp.config';
-import { MongoConfiguration } from '@common/configuration/mongo.config';
-import { GrpcConfiguration } from '@common/configuration/grpc.config';
+import { GrpcConfiguration } from '@shared/configurations/grpc.config';
 
-class Configuation extends BaseConfiguration {
+export class Configuration extends BaseConfiguration {
   @ValidateNested()
   @Type(() => AppConfiguration)
-  APP_CONFIG = new AppConfiguration();
+  APP_CONFIG: AppConfiguration;
 
   @ValidateNested()
   @Type(() => TcpConfiguration)
-  TCP_SERV = new TcpConfiguration();
+  TCP_CONFIG: TcpConfiguration;
 
   @ValidateNested()
   @Type(() => MongoConfiguration)
-  MONGO_CONFIG = new MongoConfiguration();
+  MONGO_CONFIG: MongoConfiguration;
 
   @ValidateNested()
   @Type(() => GrpcConfiguration)
-  GRPC_SERV = new GrpcConfiguration();
+  GRPC_CONFIG: GrpcConfiguration;
+
+  constructor() {
+    super();
+    this.APP_CONFIG = new AppConfiguration({
+      PORT: Number(process.env['USER_ACCESS_PORT']),
+      HASH_SALT_ROUNDS: Number(process.env['HASH_SALT_ROUNDS']),
+    });
+    this.TCP_CONFIG = new TcpConfiguration();
+    this.MONGO_CONFIG = new MongoConfiguration({
+      URI: process.env['USER_ACCESS_DB_URI'],
+      DATABASE_NAME: process.env['USER_ACCESS_DB_NAME'],
+    });
+    this.GRPC_CONFIG = new GrpcConfiguration();
+  }
 }
 
-export const CONFIGURATION = new Configuation();
-export type TConfiguration = typeof CONFIGURATION;
+export const CONFIGURATION = new Configuration();
+export type ConfigurationType = Configuration;
 
 CONFIGURATION.validate();

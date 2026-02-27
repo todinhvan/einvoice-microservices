@@ -4,6 +4,7 @@ const { join } = require('path');
 module.exports = {
   output: {
     path: join(__dirname, '../../dist/apps/pdf-generator'),
+    clean: true,
     ...(process.env.NODE_ENV !== 'production' && {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
@@ -17,13 +18,13 @@ module.exports = {
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
-      sourceMaps: true,
+      sourceMap: true,
       assets: [
         './src/assets',
         {
-          glob: '**/*',
+          glob: '**/*.ejs',
           input: 'apps/pdf-generator/src/app/templates',
-          output: './templates',
+          output: './templates/',
         },
       ],
     }),

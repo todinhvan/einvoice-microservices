@@ -1,0 +1,145 @@
+name: e-invoice-provider
+
+networks:
+  einvoice-nw:
+    driver: bridge
+    name: einvoice-nw
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgres_server
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: product_db
+      PGDATA: /var/lib/postgresql/custom_data
+    ports:
+      - 5432:5432
+    volumes:
+      - ./docker/docker_data/postgres_data:/var/lib/postgresql/custom_data
+    networks:
+      - einvoice-nw
+  mongodb:
+    image: mongo:8.2.3
+    container_name: mongodb_server
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - ./docker/docker_data/mongodb_data:/data/db
+    networks:
+      - einvoice-nw
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.0
+    container_name: keycloak_server
+    ports:
+      - 8180:8080
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    volumes:
+      - ./docker/docker_data/keycloak_data:/opt/keycloak/data
+    networks:
+      - einvoice-nw
+  redis:
+    image: redis:8.2.3
+    container_name: redis_server
+    ports:
+      - 6379:6379
+    networks:
+      - einvoice-nw
+    volumes:
+      - ./docker/docker_data/redis_data:/data
+  redis-insight:
+    image: redis/redisinsight:3.0
+    container_name: redis-insight-ui
+    ports:
+      - 5540:5540
+    networks:
+      - einvoice-nw
+    depends_on:
+      - redis
+    volumes:
+      - ./docker/docker_data/redisinsight_data:/data
+  kafka:
+    container_name: kafka_server
+    image: bitnamilegacy/kafka:4.0.0-debian-12-r10
+    networks:
+      - einvoice-nw
+    ports:
+      - 9092:9092 # internal Docker network listener (optionally)
+      - 29092:29092 # external listener, host local connect
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@localhost:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,EXTERNAL://localhost:29092
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - ./docker/docker_data/kafka_data/bitnami_data:/bitnami/kafka
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki_server
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - einvoice-nw
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail_server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - einvoice-nw
+    depends_on:
+      - loki
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana_server
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./docker/docker_data/grafana_data:/var/lib/grafana
+    networks:
+      - einvoice-nw
+    depends_on:
+      - loki
+  prometheus:
+    image: prom/prometheus:v3.8.0
+    container_name: prometheus_server
+    ports:
+      - 9090:9090
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - einvoice-nw
+  tempo:
+    image: grafana/tempo:main-69ab48f
+    container_name: tempo_server
+    command:
+      - '-config.file=/etc/tempo.yaml'
+    volumes:
+      - ./docker/tempo.yaml:/etc/tempo.yaml
+      - ./docker/docker_data/tempo_data:/var/tempo
+    ports:
+      - 3200:3200 # Tempo HTTP
+      - 4317:4317 # OTLP gRPC
+      - 4318:4318 # OTLP HTTP
+    networks:
+      - einvoice-nw

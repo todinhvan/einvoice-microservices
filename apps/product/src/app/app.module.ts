@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { CONFIGURATION, TConfiguration } from '../configuration';
-import { ConfigModule } from '@nestjs/config';
 import { ProductModule } from './modules/product/product.module';
+import { CONFIGURATION, ConfigurationType } from '../configuration';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -13,5 +13,5 @@ import { ProductModule } from './modules/product/product.module';
   ],
 })
 export class AppModule {
-  static CONFIGURATION: TConfiguration = CONFIGURATION;
+  static Configuration: ConfigurationType = CONFIGURATION;
 }

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { CONFIGURATION, TConfiguration } from '../configuration';
 import { ConfigModule } from '@nestjs/config';
+import { CONFIGURATION, ConfigurationType } from '../configuration';
 import { MailModule } from './modules/mail/mail.module';
 
 @Module({
@@ -11,9 +11,7 @@ import { MailModule } from './modules/mail/mail.module';
     }),
     MailModule,
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {
-  static CONFIGURATION: TConfiguration = CONFIGURATION;
+  static Configuration: ConfigurationType = CONFIGURATION;
 }

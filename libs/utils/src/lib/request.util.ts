@@ -1,19 +1,18 @@
-import { UnauthorizedException } from '@nestjs/common';
-import { parseToken } from './string.util';
 import { Request } from 'express';
-import { AuthorizerResponse } from '@common/interfaces/tcp/authorizer';
-import { MetadataKeys } from '@common/constants/common.constant';
+import { UnauthorizedException } from '@nestjs/common';
+import { ErrorMessages } from '@shared/constants/enums/error-message.enum';
+import { AuthorizedMetadata } from '@shared/contracts/authorizer/authorizer-response.type';
+import { MetadataKeys } from '@shared/constants/enums/metadata-key.enum';
 
 export const getAccessToken = (request: Request, keepBearer = false) => {
-  const accessToken = request.headers?.['authorization'];
-
-  if (!accessToken) {
-    throw new UnauthorizedException('Token is required');
+  const authorization = request.headers.authorization;
+  if (!authorization || authorization.split(' ').length !== 2) {
+    throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
   }
 
-  return keepBearer ? accessToken : parseToken(accessToken);
+  return keepBearer ? authorization : authorization.split(' ').pop();
 };
 
-export const setUserData = (request: any, authorizerResponse: AuthorizerResponse) => {
-  request[MetadataKeys.USER_DATA] = authorizerResponse;
+export const setAuthorizedMetadata = (request: Request, data: AuthorizedMetadata) => {
+  (request as any)[MetadataKeys.AUTHORIZED_DATA] = data;
 };

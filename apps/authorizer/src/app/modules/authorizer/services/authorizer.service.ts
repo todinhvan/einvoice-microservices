@@ -1,35 +1,49 @@
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { KeycloakHttpService } from '../../keycloak/services/keycloak-http.service';
-import { LoginTcpRequest } from '@common/interfaces/tcp/authorizer';
+import { BadRequestException, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwksClient } from 'jwks-rsa';
+import axios, { AxiosInstance } from 'axios';
+import {
+  ExchangeClientTokenResponse,
+  ExchangeUserTokenResponse,
+} from '@shared/contracts/keycloak/keycloak-response.type';
+import { LoginTCP } from '@shared/contracts/authorizer/authorizer-request.type';
+import { CreateUserTCP } from '@shared/contracts/user-access/user/user-request.type';
+import { toAuthorizerResponse, toKeycloakUser, toLoginResponse } from '../mappers/authorizer.mapper';
+import { ErrorMessages } from '@shared/constants/enums/error-message.enum';
 import jwt, { Jwt, JwtPayload } from 'jsonwebtoken';
-import { AuthorizerResponse } from '@common/interfaces/tcp/authorizer';
+import { JwksClient } from 'jwks-rsa';
+import { TcpServices } from '@shared/constants/enums/tcp-service.enum';
+import { TcpClient } from '@shared/contracts/tcp/tcp-client.interface';
 import { firstValueFrom, map } from 'rxjs';
-import { TCP_SERVICES } from '@common/configuration/tcp.config';
-import { TcpClient } from '@common/interfaces/tcp/common/tcp-client.interface';
-import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
-import { UserTcpResponse } from '@common/interfaces/tcp/user';
-import { Role } from '@common/schemas/role.schema';
-import { UserService } from '@common/interfaces/grpc/user';
-import { GRPC_SERVICES } from '@common/configuration/grpc.config';
+import { UserAccessService } from '@shared/contracts/grpc/user-access/user-access.interface';
+import { GrpcServices } from '@shared/constants/enums/grpc-service.enum';
 import { ClientGrpc } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthorizerService {
-  private readonly logger = new Logger(AuthorizerService.name);
+  private axiosInstance: AxiosInstance;
+  private url: string;
+  private realm: string;
+  private clientId: string;
+  private clientSecret: string;
   private jwksClient: JwksClient;
-  private userService: UserService;
+  private userAccessService: UserAccessService;
 
   constructor(
-    private readonly keycloakHttpService: KeycloakHttpService,
     private readonly configService: ConfigService,
-    @Inject(TCP_SERVICES.USER_ACCESS_SERVICE) private readonly userAccessClient: TcpClient,
-    @Inject(GRPC_SERVICES.USER_ACCESS_SERVICE) private readonly userAccessGrpcClient: ClientGrpc,
+    @Inject(TcpServices.USER_ACCESS) private readonly userAccessClient: TcpClient,
+    @Inject(GrpcServices.USER_ACCESS) private readonly userAccessGrpcClient: ClientGrpc,
   ) {
-    const host = this.configService.get<string>('KEYCLOAK_CONFIG.HOST');
-    const realm = this.configService.get<string>('KEYCLOAK_CONFIG.REALM');
+    this.url = configService.get<string>('KEYCLOAK_CONFIG.URL');
+    this.realm = configService.get<string>('KEYCLOAK_CONFIG.REALM');
+    this.clientId = configService.get<string>('KEYCLOAK_CONFIG.CLIENT_ID');
+    this.clientSecret = configService.get<string>('KEYCLOAK_CONFIG.CLIENT_SECRET');
 
+    this.axiosInstance = axios.create({
+      baseURL: this.url,
+    });
+
+    const host = configService.get<string>('KEYCLOAK_CONFIG.URL');
+    const realm = configService.get<string>('KEYCLOAK_CONFIG.REALM');
     this.jwksClient = new JwksClient({
       jwksUri: `${host}/realms/${realm}/protocol/openid-connect/certs`,
       cache: true,
@@ -38,70 +52,99 @@ export class AuthorizerService {
   }
 
   onModuleInit() {
-    this.userService = this.userAccessGrpcClient.getService<UserService>('UserService');
+    this.userAccessService = this.userAccessGrpcClient.getService<UserAccessService>('UserAccessService');
   }
 
-  async login(params: LoginTcpRequest) {
-    const { access_token: accessToken, refresh_token: refreshToken } = await this.keycloakHttpService.exchangeUserToken(
-      params,
+  async exchangeClientToken() {
+    const body = new URLSearchParams();
+    body.append('grant_type', 'client_credentials');
+    body.append('client_id', this.clientId);
+    body.append('client_secret', this.clientSecret);
+    body.append('scope', 'openid');
+
+    const { data } = await this.axiosInstance.post<ExchangeClientTokenResponse>(
+      `/realms/${this.realm}/protocol/openid-connect/token`,
+      body,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      },
     );
-    return { accessToken, refreshToken };
+
+    return data.access_token;
   }
 
-  async verifyUserToken(token: string, processId: string): Promise<AuthorizerResponse> {
+  async exchangeUserToken(request: LoginTCP) {
+    const body = new URLSearchParams();
+    body.append('grant_type', 'password');
+    body.append('client_id', this.clientId);
+    body.append('client_secret', this.clientSecret);
+    body.append('username', request.email);
+    body.append('password', request.password);
+    body.append('scope', 'openid');
+
+    const { data } = await this.axiosInstance.post<ExchangeUserTokenResponse>(
+      `/realms/${this.realm}/protocol/openid-connect/token`,
+      body,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      },
+    );
+
+    return toLoginResponse(data);
+  }
+
+  async createUser(data: CreateUserTCP) {
+    const body = toKeycloakUser(data);
+    const accessToken = await this.exchangeClientToken();
+    const { headers } = await this.axiosInstance.post(`/admin/realms/${this.realm}/users`, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const userId = headers['location']?.split('/').pop() ?? null;
+    if (!userId) {
+      throw new BadRequestException(ErrorMessages.CREATE_KEYCLOAK_USER_FAILED);
+    }
+
+    return userId as string;
+  }
+
+  async verifyToken(token: string, processId: string) {
     const decoded = jwt.decode(token, { complete: true }) as Jwt;
     if (!decoded || !decoded.header || !decoded.header.kid) {
-      throw new UnauthorizedException('Invalid token structure');
+      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
     }
 
     try {
-      const key = await this.jwksClient.getSigningKey(decoded.header.kid);
-      const publicKey = key.getPublicKey();
+      const signingKey = await this.jwksClient.getSigningKey(decoded.header.kid);
+      const publicKey = signingKey.getPublicKey();
 
-      const payload = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
-      this.logger.debug({ payload });
+      const jwtpayload = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
+      const userInfo = await this.fetchUserInfo(jwtpayload.sub, processId);
 
-      const user = await this.userValidation(payload.sub, processId);
-
-      return {
-        valid: true,
-        metadata: {
-          jwt: payload,
-          permissions: (user.roles as unknown as Role[]).flatMap((role) => role.permissions),
-          user,
-          userId: user.id,
-        },
-      };
+      return toAuthorizerResponse(userInfo, jwtpayload);
     } catch (error) {
-      this.logger.error({ error });
-      throw new UnauthorizedException('Invalid token');
+      Logger.error({ error });
+      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
     }
   }
 
-  private async userValidation(token: string, processId: string) {
-    const user = await this.getUserInfo(token, processId);
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return user;
-  }
-
-  async getUserInfo(token: string, processId: string) {
-    // return firstValueFrom(
+  async fetchUserInfo(keycloakUserId: string, processId: string) {
+    // return await firstValueFrom(
     //   this.userAccessClient
-    //     .send<UserTcpResponse, string>(TCP_REQUEST_MESSAGE.USER.GET_BY_USER_ID, {
-    //       data: token,
-    //       processId,
-    //     })
-    //     .pipe(
-    //       map((data) => {
-    //         Logger.log('getUserInfo response data:', data);
-    //         return data.data;
-    //       }),
-    //     ),
+    //     .send<UserResponse, string>(TcpMessages.USER.GET_BY_KEYCLOAK_USER_ID, { processId, data: keycloakUserId })
+    //     .pipe(map((response) => response.data)),
     // );
-    const response = await firstValueFrom(this.userService.getUserInfo({ token }));
-    return response.data;
+    return await firstValueFrom(
+      this.userAccessService
+        .getUserByKeycloakUserId({ keycloakUserId, processId })
+        .pipe(map((response) => response.data)),
+    );
   }
 }

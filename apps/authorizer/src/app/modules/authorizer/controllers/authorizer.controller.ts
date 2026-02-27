@@ -1,28 +1,34 @@
-import { TcpLoggingInterceptor } from '@common/interceptors/tcp-logging.interceptor';
 import { Controller, UseInterceptors } from '@nestjs/common';
+import { TcpLoggingInterceptor } from '@shared/interceptors/tcp-logging.interceptor';
 import { AuthorizerService } from '../services/authorizer.service';
 import { MessagePattern } from '@nestjs/microservices';
-import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
-import { RequestParams } from '@common/decorators/request-param.decorator';
-import { AuthorizerResponse, LoginTcpRequest, LoginTcpResponse } from '@common/interfaces/tcp/authorizer';
-import { Response } from '@common/interfaces/tcp/common/response.interface';
-import { ProcessId } from '@common/decorators/process-id.decorator';
+import { TcpMessages } from '@shared/constants/enums/tcp-message.enum';
+import { RequestParams } from '@shared/decorators/request-param.decorator';
+import { CreateUserTCP } from '@shared/contracts/user-access/user/user-request.type';
+import { RequestTCP, ResponseTCP } from '@shared/contracts/tcp/tcp-client.interface';
+import { LoginTCP } from '@shared/contracts/authorizer/authorizer-request.type';
+import { TcpTracingInterceptor } from '@shared/interceptors/tcp-tracing.interceptor';
 
 @Controller()
-@UseInterceptors(TcpLoggingInterceptor)
+@UseInterceptors(TcpLoggingInterceptor, TcpTracingInterceptor)
 export class AuthorizerController {
-  constructor(private readonly authorizerService: AuthorizerService) {}
+  constructor(private readonly auhorizerService: AuthorizerService) {}
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.AUTHORIZER.LOGIN)
-  async login(@RequestParams() params: LoginTcpRequest) {
-    console.log('AuthorizerController - login called with params:', params);
-    const result = await this.authorizerService.login(params);
-    return Response.success<LoginTcpResponse>(result);
+  @MessagePattern(TcpMessages.AUTHORIZER.CREATE_KEYCLOAK_USER)
+  async createUser(@RequestParams('data') data: CreateUserTCP) {
+    const userId = await this.auhorizerService.createUser(data);
+    return ResponseTCP.success(userId);
   }
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.AUTHORIZER.VERIFY_USER_TOKEN)
-  async verifyUserToken(@RequestParams() token: string, @ProcessId() processId: string) {
-    const result = await this.authorizerService.verifyUserToken(token, processId);
-    return Response.success<AuthorizerResponse>(result);
+  @MessagePattern(TcpMessages.AUTHORIZER.LOGIN)
+  async exchangeUserToken(@RequestParams('data') data: LoginTCP) {
+    const result = await this.auhorizerService.exchangeUserToken(data);
+    return ResponseTCP.success(result);
+  }
+
+  @MessagePattern(TcpMessages.AUTHORIZER.VERIFY_TOKEN)
+  async verifyToken(@RequestParams() request: RequestTCP<string>) {
+    const result = await this.auhorizerService.verifyToken(request.data, request.processId);
+    return ResponseTCP.success(result);
   }
 }

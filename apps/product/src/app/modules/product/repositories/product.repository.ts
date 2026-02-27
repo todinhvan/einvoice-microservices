@@ -1,38 +1,33 @@
-import { Product } from '@common/entities/product.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Product } from '@shared/entities/product.entity';
+import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class ProductRepository {
   constructor(@InjectRepository(Product) private readonly repository: Repository<Product>) {}
 
-  async create(data: Partial<Product>): Promise<Product> {
-    const product = this.repository.create(data);
+  save(product: Product) {
     return this.repository.save(product);
   }
 
-  async findAll(): Promise<Product[]> {
+  findById(id: number) {
+    return this.repository.findOne({ where: { id } });
+  }
+
+  findAll() {
     return this.repository.find();
   }
 
-  async findById(id: number): Promise<Product | null> {
-    return this.repository.findOneBy({ id });
+  findAllByIds(ids: number[]) {
+    return this.repository.findBy({ id: In(ids) });
   }
 
-  async update(id: number, data: Partial<Product>): Promise<Product | null> {
-    return this.repository.save({ ...data, id });
+  delete(product: Product) {
+    return this.repository.remove(product);
   }
 
-  async delete(id: number): Promise<void> {
-    await this.repository.delete(id);
-  }
-
-  async exists(sku: string, name: string): Promise<boolean> {
-    return this.repository
-      .findOne({
-        where: [{ sku }, { name }],
-      })
-      .then((product) => !!product);
+  exists(name: string, sku: string) {
+    return this.repository.exists({ where: { name, sku } });
   }
 }

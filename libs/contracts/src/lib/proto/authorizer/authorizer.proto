@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "user-access.proto";
+
+package GRPC_AUTHORIZER;
+
+service AuthorizerService {
+  rpc verifyToken(VerifyTokenRequest) returns (VerifyTokenResponse) {}
+}
+
+message VerifyTokenRequest {
+  string token = 1;
+  string processId = 2;
+}
+
+message JwtPayload {
+  string iss = 1;
+  string sub = 2;
+  string aud = 3;
+  int32 exp = 4;
+  int32 nbf = 5;
+  int32 iat = 6;
+  string jti = 7;
+}
+
+message AuthorizerMetadata {
+  string userId = 1;
+  User user = 2;
+  repeated string permissions = 3;
+  JwtPayload jwt = 4;
+}
+
+message AuthorizerResponse {
+  bool valid = 1;
+  optional AuthorizerMetadata metadata = 2;
+}
+
+message VerifyTokenResponse {
+  int32 status = 1;
+  string message = 2;
+  AuthorizerResponse data = 3;
+  string error = 4;
+}

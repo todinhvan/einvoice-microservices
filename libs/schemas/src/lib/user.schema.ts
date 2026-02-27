@@ -1,7 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { ObjectId } from 'mongodb';
 import { BaseSchema, createSchema } from './base.schema';
-import { Model } from 'mongoose';
+import { ObjectId } from 'mongodb';
+import { Role } from './role.schema';
 
 @Schema({ collection: 'user' })
 export class User extends BaseSchema {
@@ -11,21 +11,25 @@ export class User extends BaseSchema {
   @Prop({ type: String })
   lastName: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, unique: true })
   email: string;
 
   @Prop({ type: String })
-  userId: string;
+  password: string;
+
+  @Prop({ type: String })
+  keycloakUserId: string;
 
   @Prop({ type: [ObjectId], ref: 'Role' })
   roles: ObjectId[];
 }
 
-export const UserSchema = createSchema(User);
-export const UserModelName = User.name;
-export const UserDestination = {
-  name: UserModelName,
+const UserSchema = createSchema(User);
+export const UserDefinition = {
+  name: User.name,
   schema: UserSchema,
 };
 
-export type TUserModel = Model<User>;
+export type UserPopulated = Omit<User, 'roles'> & {
+  roles: Role[];
+};

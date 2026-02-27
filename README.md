@@ -1,82 +1,120 @@
-# Einvoice
+# E-Invoice Microservices
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+## 1. Giới thiệu project
+E-Invoice là một hệ thống hóa đơn điện tử được thiết kế theo kiến trúc Microservices. Dự án cung cấp các dịch vụ liên quan đến quản lý người dùng, sản phẩm, thanh toán, tạo và quản lý hóa đơn, gửi email, và lưu trữ tài liệu. Hệ thống được phát triển trong một Nx workspace nhằm tối ưu hóa việc quản lý và chia sẻ thư viện dùng chung (monorepo).
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
+## 2. Tài liệu kỹ thuật và công nghệ sử dụng
+Hệ thống sử dụng các công nghệ và thư viện hiện đại để đảm bảo hiệu suất, bảo mật và khả năng mở rộng:
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+**Ngôn ngữ & Framework:**
+- **Node.js** & **TypeScript**
+- **NestJS**: Framework chính xây dựng các microservices.
+- **Nx**: Quản lý monorepo workspace (`nx`, `@nx/nest`).
 
-## Finish your CI setup
+**Cơ sở dữ liệu & Caching:**
+- **PostgreSQL** (thông qua TypeORM): Cơ sở dữ liệu quan hệ (relational).
+- **MongoDB** (thông qua Mongoose): Cơ sở dữ liệu NoSQL cho các dữ liệu phi cấu trúc.
+- **Redis**: Phục vụ caching và tính năng Rate Limiting (Throttler).
 
-[Click here to finish setting up your workspace!](https://cloud.nx.app/connect/WKm2DesYF4)
+**Giao tiếp giữa các Microservices:**
+- **gRPC** & **Kafka**: Cho việc giao tiếp nội bộ giữa các service đòi hỏi hiệu suất cao và xử lý kiến trúc hướng sự kiện (Event-driven).
+- **REST API** / **BFF (Backend for Frontend)**: Cung cấp Web API trực tiếp cho các client.
 
+**Bảo mật & Xác thực:**
+- **Keycloak**: Nền tảng Identity and Access Management (IAM) chuyên nghiệp.
+- **JWT (JSON Web Token)** & **Bcrypt**: Xác thực và mã hóa.
 
-## Run tasks
+**Observability, Logging & Monitoring:**
+- **Prometheus** & **Grafana**: Thu thập và trực quan hóa các metrics hệ thống.
+- **Loki** & **Promtail**: Phân tích và quản lý centralized logs.
+- **Tempo** & **OpenTelemetry**: Distributed tracing (theo dõi lời gọi qua lại giữa các microservices).
+- **Pino**: Công cụ logging phân tán hiệu năng cao.
 
-To run the dev server for your app, use:
+**Các thư viện/Dịch vụ khác:**
+- **Stripe**: Tích hợp thanh toán trực tuyến.
+- **Cloudinary**: Lưu trữ phương tiện và tệp (media).
+- **Puppeteer**: Sinh (generate) file PDF cho các hóa đơn.
+- **Nodemailer**: Gửi email thông báo cho người dùng.
 
+## 3. Cấu trúc dự án
+Dự án theo kiến trúc Nx monorepo với cấu trúc thư mục chính như sau:
+
+```text
+einvoice-microservices/
+├── apps/                        # Chứa mã nguồn các microservices độc lập
+│   ├── authorizer               # Dịch vụ phân quyền và xác thực
+│   ├── bff                      # Backend for Frontend (Cổng giao tiếp chính cho UI)
+│   ├── invoice                  # Dịch vụ quản lý hóa đơn điện tử
+│   ├── mail                     # Dịch vụ gửi email thông báo
+│   ├── media                    # Dịch vụ quản lý tệp đính kèm và phương tiện
+│   ├── payment                  # Dịch vụ xử lý thanh toán (Stripe)
+│   ├── pdf-generator            # Dịch vụ tạo PDF hóa đơn (Sử dụng Puppeteer)
+│   ├── product                  # Dịch vụ quản lý sản phẩm
+│   └── user-access              # Dịch vụ quản lý quyền truy cập người dùng
+├── libs/                        # Chứa các thư viện và code dùng chung (interfaces, utils, dto...)
+├── docker/                      # Cấu hình file Docker Compose và Infrastructure
+│   ├── docker-compose.provider.yaml # Chứa Database, Kafka, Redis, Monitoring...
+│   └── docker_data/             # Thư mục map volumes (dữ liệu cục bộ của DB/v.v.)
+├── package.json                 # Quản lý dependencies (pnpm)
+└── nx.json                      # Cấu hình của hệ sinh thái Nx
+```
+
+## 4. Hướng dẫn cài đặt và sử dụng
+
+### Yêu cầu hệ thống
+- **Node.js**: (Bản tương thích, nên sử dụng bản LTS/version dựa trên `pnpm`).
+- **pnpm**: Package manager ưu tiên của dự án.
+- **Docker** & **Docker Compose**: Máy tính cần cài sẵn Docker để boot các Backing services.
+
+### Các bước cài đặt
+
+**Bước 1: Clone dự án và cài dependencies**
 ```sh
+# Clone dự án về máy
+git clone <repository_url>
+cd einvoice-microservices
+
+# Cài đặt các gói phụ thuộc (dependencies)
+pnpm install
+```
+
+**Bước 2: Khởi chạy môi trường Infrastructure (Docker)**
+Hệ thống yêu cầu các thành phần nền tảng (databases, broker, monitoring) trước khi có thể chạy API.
+```sh
+# Mở các dịch vụ nền tảng (Postgres, Mongo, Keycloak, Kafka, Redis, Grafana, v.v...)
+# ở chế độ chạy ngầm (-d)
+docker compose -f docker-compose.provider.yaml up -d
+```
+*Lưu ý: Dữ liệu docker được mount với folder local tại `./docker/docker_data/`.*
+
+**Bước 3: Chạy các Microservices**
+Để làm việc trên môi trường phát triển (Dev local), sử dụng các câu lệnh sau:
+```sh
+# Để khởi chạy tất cả các microservices hiện có
+pnpm dev
+
+# Hoặc khởi chạy một cấu hình nhỏ nhẹ (VD: chỉ bật BFF và Invoice app)
+pnpm dev-lite
+
+# Hoặc chạy cục bộ một service cụ thể bằng Nx (cú pháp chuẩn nx: npx nx serve <app-name>)
 npx nx serve invoice
 ```
 
-To create a production bundle:
+### Các lệnh hữu ích khác từ Nx CLI
 
+**Build ứng dụng phục vụ Production:**
 ```sh
-npx nx build invoice
+# Build 1 app (VD: bff)
+npx nx build bff
 ```
 
-To see all available targets to run for a project, run:
-
+**Xem biểu đồ phụ thuộc (Dependency Graph):**
+Lệnh này mở giao diện trên trình duyệt giúp hình dung sự trao đổi dữ liệu và chia sẻ mã nguồn giữa các thư viện và `apps`.
 ```sh
-npx nx show project invoice
+npx nx graph
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
+**Liệt kê các module đang có:**
 ```sh
-npx nx g @nx/nest:app demo
+npx nx show projects
 ```
-
-To generate a new library, use:
-
-```sh
-npx nx g @nx/node:lib mylib
-```
-
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)

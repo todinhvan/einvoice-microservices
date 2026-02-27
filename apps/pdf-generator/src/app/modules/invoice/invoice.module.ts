@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { InvoicePdfController } from './controllers/invoice-pdf.controller';
-import { InvoicePdfService } from './services/invoice-pdf.service';
 import { PdfModule } from '../pdf/pdf.module';
+import { InvoiceService } from './services/invoice.service';
+import { InvoiceController } from './controllers/invoice.controller';
 
 @Module({
   imports: [PdfModule],
-  controllers: [InvoicePdfController],
-  providers: [InvoicePdfService],
+  controllers: [InvoiceController],
+  providers: [InvoiceService],
 })
 export class InvoiceModule {}

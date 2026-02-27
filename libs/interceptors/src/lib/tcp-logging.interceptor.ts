@@ -1,36 +1,36 @@
 import { CallHandler, ExecutionContext, HttpStatus, Injectable, Logger, NestInterceptor } from '@nestjs/common';
 import { catchError, Observable, tap } from 'rxjs';
+import { MetadataKeys } from '@shared/constants/enums/metadata-key.enum';
+import { formatDateTime } from '@shared/utils/date-time.util';
 import { RpcException } from '@nestjs/microservices';
-import { HttpMessage } from '@common/constants/enums/http-message.constant';
+import { HttpMessages } from '@shared/constants/enums/http-message.enum';
+import { RequestTCP } from '@shared/contracts/tcp/tcp-client.interface';
 
 @Injectable()
 export class TcpLoggingInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler<any>): Observable<any> | Promise<Observable<any>> {
-    const now = Date.now();
-    const handler = context.getHandler();
-    const handlerName = handler.name;
-    const args = context.getArgs();
-    const param = args[0];
-    const processId = param.processId;
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> | Promise<Observable<any>> {
+    const data: RequestTCP<unknown> = context.switchToRpc().getData();
+    const handlerName = context.getHandler().name;
+    const startTime = Date.now();
+    const processId = data[MetadataKeys.PROCESS_ID];
 
     Logger.log(
-      `TCP >> Start proces '${processId}' >> method: '${handlerName}' at '${now}' >> input: ${JSON.stringify(param)}`,
+      `TCP Request >>> Start process [${processId}] with [${handlerName}] at [${formatDateTime(startTime, 'vi-VN')}]. Input: ${JSON.stringify(data)}`,
     );
 
     return next.handle().pipe(
       tap(() =>
-        Logger.log(`TCP >> End proces '${processId}' >> method: '${handlerName}' after: '${Date.now() - now} ms`),
+        Logger.log(
+          `TCP Response <<< End process [${processId}] with [${handlerName}]. Duration '${Date.now() - startTime}ms`,
+        ),
       ),
       catchError((error) => {
-        const duration = Date.now() - now;
         Logger.error(
-          `TCP >> Error proces '${processId}': ${error.message} >> data: ${JSON.stringify(
-            error,
-          )} >> method: '${handlerName}' after: '${duration} ms'`,
+          `TCP Error <<< Error process [${processId}] with [${handlerName}]. Message: ${error.message}. Error: ${JSON.stringify(error)}. Duration: ${Date.now() - startTime}ms`,
         );
         throw new RpcException({
           code: error.status || error.code || error.error?.code || HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error?.response?.message || error?.message || HttpMessage.INTERNAL_SERVER_ERROR,
+          message: error?.response?.message || error?.message || HttpMessages.INTERNAL_SERVER_ERROR,
         });
       }),
     );

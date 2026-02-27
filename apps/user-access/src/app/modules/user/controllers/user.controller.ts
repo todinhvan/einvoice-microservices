@@ -1,34 +1,39 @@
 import { Controller, UseInterceptors } from '@nestjs/common';
-import { TcpLoggingInterceptor } from '@common/interceptors/tcp-logging.interceptor';
+import { TcpLoggingInterceptor } from '@shared/interceptors/tcp-logging.interceptor';
 import { UserService } from '../services/user.service';
 import { MessagePattern } from '@nestjs/microservices';
-import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
-import { RequestParams } from '@common/decorators/request-param.decorator';
-import { ProcessId } from '@common/decorators/process-id.decorator';
-import { CreateUserTcpRequest, UserTcpResponse } from '@common/interfaces/tcp/user';
-import { Response } from '@common/interfaces/tcp/common/response.interface';
-import { HttpMessage } from '@common/constants/enums/http-message.constant';
+import { TcpMessages } from '@shared/constants/enums/tcp-message.enum';
+import { RequestParams } from '@shared/decorators/request-param.decorator';
+import { RequestTCP, ResponseTCP } from '@shared/contracts/tcp/tcp-client.interface';
+import { CreateUserTCP } from '@shared/contracts/user-access/user/user-request.type';
+import { TcpTracingInterceptor } from '@shared/interceptors/tcp-tracing.interceptor';
 
 @Controller()
-@UseInterceptors(TcpLoggingInterceptor)
+@UseInterceptors(TcpLoggingInterceptor, TcpTracingInterceptor)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.USER.CREATE)
-  async create(@RequestParams() params: CreateUserTcpRequest, @ProcessId() processId: string) {
-    await this.userService.create(params, processId);
-    return Response.success<string>(HttpMessage.CREATED);
+  @MessagePattern(TcpMessages.USER.CREATE)
+  async createUser(@RequestParams() request: RequestTCP<CreateUserTCP>) {
+    const user = await this.userService.createUser(request.data, request.processId);
+    return ResponseTCP.success(user);
   }
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.USER.GET_ALL)
-  async getAll() {
-    const users = await this.userService.getAll();
-    return Response.success<UserTcpResponse[]>(users);
+  @MessagePattern(TcpMessages.USER.GET)
+  async getUser(@RequestParams('data') data: string) {
+    const user = await this.userService.getUser(data);
+    return ResponseTCP.success(user);
   }
 
-  @MessagePattern(TCP_REQUEST_MESSAGE.USER.GET_BY_USER_ID)
-  async getByUserId(@RequestParams() userId: string) {
-    const user = await this.userService.getByUserId(userId);
-    return Response.success<UserTcpResponse>(user);
+  @MessagePattern(TcpMessages.USER.GET_BY_KEYCLOAK_USER_ID)
+  async getUserByKeycloakUserId(@RequestParams('data') data: string) {
+    const user = await this.userService.getUserByKeycloakUserId(data);
+    return ResponseTCP.success(user);
+  }
+
+  @MessagePattern(TcpMessages.USER.GET_ALL)
+  async getUsers() {
+    const users = await this.userService.getAllUsers();
+    return ResponseTCP.success(users);
   }
 }

@@ -1,32 +1,29 @@
-import { TCP_SERVICES } from '@common/configuration/tcp.config';
-import { Inject, Injectable } from '@nestjs/common';
-import { TcpClient } from '@common/interfaces/tcp/common/tcp-client.interface';
-import { firstValueFrom, map } from 'rxjs';
-import { TCP_REQUEST_MESSAGE } from '@common/constants/enums/tcp-request-message.enum';
-import { InvoiceTcpResponse } from '@common/interfaces/tcp/invoice/invoice-response.interface';
-import { InvoiceSendPayload } from '@common/interfaces/queue/invoice';
+import { Injectable } from '@nestjs/common';
 import { MailService } from './mail.service';
+import { Invoice } from '@shared/schemas/invoice.schema';
+import { MailTemplateService } from './mail-template.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MailInvoiceService {
   constructor(
-    @Inject(TCP_SERVICES.INVOICE_SERVICE) private readonly invoiceClient: TcpClient,
     private readonly mailService: MailService,
-    private readonly configsService: ConfigService,
+    private readonly mailTemplateService: MailTemplateService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async sendInvoice(payload: InvoiceSendPayload) {
-    const invoice = await this.getInvoiceById(payload.invoiceId);
-    const html = await this.mailService.renderTemplate('invoice', {
+  async sendInvoice(payload: { invoice: Invoice; paymentLink: string }) {
+    const { invoice, paymentLink } = payload;
+    const html = await this.mailTemplateService.render('invoice', {
       clientName: invoice.client.name,
-      senderName: this.configsService.get('MAIL_CONFIG.SENDER_NAME'),
+      senderName: this.configService.get<string>('MAIL_CONFIG.SENDER_NAME'),
       invoiceCode: `#${invoice.id}`,
-      paymentLink: payload.paymentLink,
+      paymentLink: paymentLink,
     });
-    await this.mailService.sendMail({
+
+    this.mailService.sendMail({
       to: invoice.client.email,
-      subject: `Invoice: #${invoice.id}`,
+      subject: 'Send Invoice',
       html,
       attachments: [
         {
@@ -35,15 +32,5 @@ export class MailInvoiceService {
         },
       ],
     });
-  }
-
-  private getInvoiceById(id: string) {
-    return firstValueFrom(
-      this.invoiceClient
-        .send<InvoiceTcpResponse, string>(TCP_REQUEST_MESSAGE.INVOICE.GET_BY_ID, {
-          data: id,
-        })
-        .pipe(map((response) => response.data)),
-    );
   }
 }

@@ -7,30 +7,34 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { QUEUE_GROUPS } from '@common/constants/enums/queue-groups.enum';
+import { QueueGroups } from '@shared/constants/enums/queue.enum';
+import { initTracing } from '@shared/observability/tracing';
+import { ServiceName } from '@shared/constants/enums/common.enum';
+
+initTracing(ServiceName.MAIL);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const globalPrefix = AppModule.Configuration.GLOBAL_PREFIX;
+  const port = AppModule.Configuration.APP_CONFIG.PORT;
 
+  app.setGlobalPrefix(globalPrefix);
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
       client: {
-        brokers: [AppModule.CONFIGURATION.KAFKA_CONFIG.URL],
+        brokers: [AppModule.Configuration.KAFKA_CONFIG.URL],
       },
       consumer: {
-        groupId: QUEUE_GROUPS.MAIL,
+        groupId: QueueGroups.MAIL,
         allowAutoTopicCreation: true,
       },
     },
   });
-  await app.startAllMicroservices();
 
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
-  const port = process.env.MAIL_PORT || 3333;
+  await app.startAllMicroservices();
   await app.listen(port);
-  Logger.log(`🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
+  Logger.log(`Mail Service is running on: http://localhost:${port}/${globalPrefix}`);
 }
 
 bootstrap();

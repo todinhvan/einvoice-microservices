@@ -1,0 +1,4 @@
+export enum GrpcServices {
+  AUTHORIZER = 'GRPC_AUTHORIZER',
+  USER_ACCESS = 'GRPC_USER_ACCESS',
+}

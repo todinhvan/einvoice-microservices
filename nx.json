@@ -14,7 +14,7 @@
     ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
-  "nxCloudId": "68e53986e2a3157e8ef66c95",
+  "nxCloudId": "69610b8a2a725c5e596bf526",
   "plugins": [
     {
       "plugin": "@nx/webpack/plugin",
@@ -38,7 +38,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/invoice-e2e/**/*"]
+      "exclude": ["apps/einvoice-e2e/**/*"]
     }
   ]
 }

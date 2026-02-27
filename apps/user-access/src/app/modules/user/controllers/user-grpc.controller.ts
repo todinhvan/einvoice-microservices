@@ -1,17 +1,16 @@
 import { Controller } from '@nestjs/common';
-import { UserService } from '../services/user.service';
 import { GrpcMethod } from '@nestjs/microservices';
-import { GetUserInfoGrpcRequest, GetUserInfoGrpcResponse } from '@common/interfaces/grpc/user';
-import { Response } from '@common/interfaces/grpc/common/response.interface';
-import { User } from '@common/schemas/user.schema';
+import { GetUserByKeycloakUserIdGrpcRequest } from '@shared/contracts/user-access/user/user-request.type';
+import { UserService } from '../services/user.service';
+import { ResponseGRPC } from '@shared/contracts/grpc/grpc-response.interface';
 
 @Controller()
 export class UserGrpcController {
   constructor(private readonly userService: UserService) {}
 
-  @GrpcMethod('UserService', 'getUserInfo')
-  async getByUserId(params: GetUserInfoGrpcRequest): Promise<GetUserInfoGrpcResponse> {
-    const user = await this.userService.getByUserId(params.token);
-    return Response.success<User>(user);
+  @GrpcMethod('UserAccessService', 'getUserByKeycloakUserId')
+  async getUserByKeycloakUserId(params: GetUserByKeycloakUserIdGrpcRequest) {
+    const user = await this.userService.getUserByKeycloakUserId(params.keycloakUserId);
+    return ResponseGRPC.success(user);
   }
 }

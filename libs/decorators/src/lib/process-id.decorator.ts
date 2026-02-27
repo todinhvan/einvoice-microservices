@@ -1,11 +1,9 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { MetadataKeys } from '@common/constants/common.constant';
-import { generateProcessId } from '@common/utils/string.util';
+import { MetadataKeys } from '@shared/constants/enums/metadata-key.enum';
+import { generateProcessId } from '@shared/utils/string.util';
 
-export const ProcessId = createParamDecorator((data: any, ctx: ExecutionContext) => {
-  const http = ctx.switchToHttp();
-  const request = http.getRequest();
-  const processId = request[MetadataKeys.PROCESS_ID];
-
-  return processId || generateProcessId();
+export const ProcessId = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+  const request = ctx.switchToHttp().getRequest();
+  const processId = request[MetadataKeys.PROCESS_ID] as string | undefined;
+  return processId ? processId : generateProcessId();
 });

@@ -1,0 +1,18 @@
+export enum ErrorMessages {
+  PRODUCT_ALREADY_EXISTS = 'Product already exists',
+  PRODUCT_NOT_FOUND = 'Product not found',
+  INVOICE_INVALID = 'Invoice is invalid',
+  INVOICE_NOT_FOUND = 'Invoice not found',
+  INVOICE_CAN_NOT_BE_SENT = 'Invoice can not be sent',
+  INVOICE_CAN_NOT_BE_CHANGED = 'Invoice can not be changed',
+  USER_NOT_FOUND = 'User not found',
+  USER_ALREADY_EXISTS = 'User already exists',
+  CREATE_KEYCLOAK_USER_FAILED = 'Create keycloak user failed',
+  ROLE_NOT_FOUND = 'Role not found',
+  UNAUTHORIZED = 'Token invalid',
+  FORBIDDEN = 'Permission denied',
+  TOO_MANY_REQUESTS = 'Too many requests, please try again later',
+  TEMPLATE_FILE_NOT_FOUND = 'Template file not found',
+  UNKNOWN_ERROR = 'Unknown error',
+  PDF_FILE_NOT_FOUND = 'PDF file not found',
+}

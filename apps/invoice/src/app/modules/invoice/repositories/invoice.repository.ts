@@ -1,32 +1,26 @@
-import { INVOICE_STATUS } from '@common/constants/enums/invoice.enum';
-import { Invoice, InvoiceModelName, TInvoiceModel } from '@common/schemas/invoice.schema';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Invoice, InvoiceDefinition } from '@shared/schemas/invoice.schema';
+import { Model } from 'mongoose';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class InvoiceRepository {
-  constructor(@InjectModel(InvoiceModelName) private readonly invoiceModel: TInvoiceModel) {}
+  constructor(@InjectModel(InvoiceDefinition.name) private readonly model: Model<Invoice>) {}
 
-  create(data: Partial<Invoice>) {
-    return this.invoiceModel.create({
-      ...data,
-      status: INVOICE_STATUS.CREATED,
-    });
+  create(invoice: Invoice) {
+    return this.model.create(invoice);
   }
 
-  findById(id: string) {
-    return this.invoiceModel.findById(id);
+  findById(id: ObjectId) {
+    return this.model.findById(id).exec();
   }
 
-  updateById(id: string, data: Partial<Invoice>) {
-    return this.invoiceModel.findByIdAndUpdate(id, data, { new: true });
+  findAll() {
+    return this.model.find().exec();
   }
 
-  changeStatus(id: string, status: INVOICE_STATUS) {
-    return this.invoiceModel.findByIdAndUpdate(id, { status }, { new: true });
-  }
-
-  deleteById(id: string) {
-    return this.invoiceModel.findByIdAndDelete(id);
+  updateById(id: ObjectId, invoice: Partial<Invoice>) {
+    return this.model.updateOne({ _id: id }, { $set: invoice }).exec();
   }
 }

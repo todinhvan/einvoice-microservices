@@ -1,28 +1,34 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { MongoProvider } from '@shared/configurations/mongo.config';
+import { TcpProvider } from '@shared/configurations/tcp.config';
+import { TcpServices } from '@shared/constants/enums/tcp-service.enum';
+import { InvoiceDefinition } from '@shared/schemas/invoice.schema';
 import { InvoiceController } from './controllers/invoice.controller';
 import { InvoiceService } from './services/invoice.service';
-import { MongoProvider } from '@common/configuration/mongo.config';
-import { MongooseModule } from '@nestjs/mongoose';
-import { InvoiceDestination } from '@common/schemas/invoice.schema';
 import { InvoiceRepository } from './repositories/invoice.repository';
-import { ClientsModule } from '@nestjs/microservices';
-import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
-import { PaymentModule } from '../payment/payment.module';
-import { KafkaModule } from '@common/kafka/kafka.module';
-import { QUEUE_SERVICES } from '@common/constants/enums/queue-groups.enum';
+import { KafkaModule } from '@shared/kafka/kafka.module';
+import { QueueServices } from '@shared/constants/enums/queue.enum';
+import { InvoiceSagaService } from './services/invoice-saga.service';
+import { SagaOrchestrationModule } from '@shared/saga-orchestration/saga-orchestration.module';
 
 @Module({
   imports: [
     MongoProvider,
-    MongooseModule.forFeature([InvoiceDestination]),
-    ClientsModule.registerAsync([
-      TcpProvider(TCP_SERVICES.PDF_GENERATOR_SERVICE),
-      TcpProvider(TCP_SERVICES.MEDIA_SERVICE),
-    ]),
-    PaymentModule,
-    KafkaModule.register(QUEUE_SERVICES.INVOICE),
+    MongooseModule.forFeature([InvoiceDefinition]),
+    KafkaModule.forRoot(QueueServices.INVOICE),
+    SagaOrchestrationModule.forRoot(),
   ],
   controllers: [InvoiceController],
-  providers: [InvoiceService, InvoiceRepository],
+  providers: [
+    InvoiceService,
+    InvoiceRepository,
+    InvoiceSagaService,
+    TcpProvider(TcpServices.PRODUCT),
+    TcpProvider(TcpServices.PDF_GENERATOR),
+    TcpProvider(TcpServices.MEDIA),
+    TcpProvider(TcpServices.PAYMENT),
+  ],
 })
 export class InvoiceModule {}

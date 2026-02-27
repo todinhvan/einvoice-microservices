@@ -1,12 +1,11 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { BaseSchema, createSchema } from './base.schema';
-import { ROLE } from '@common/constants/enums/role.enum';
-import { PERMISSION } from '@common/constants/enums/permission.enum';
-import { Model } from 'mongoose';
+import { ROLE } from '@shared/constants/enums/role.enum';
+import { PERMISSION } from '@shared/constants/enums/permission.enum';
 
 @Schema({ collection: 'role' })
 export class Role extends BaseSchema {
-  @Prop({ type: String, enum: ROLE, unique: true, default: ROLE.ACCOUNTANT })
+  @Prop({ type: String, enum: ROLE, default: ROLE.ACCOUNTANT })
   name: ROLE;
 
   @Prop({ type: String })
@@ -16,11 +15,8 @@ export class Role extends BaseSchema {
   permissions: PERMISSION[];
 }
 
-export const RoleSchema = createSchema(Role);
-export const RoleModelName = Role.name;
-export const RoleDestination = {
-  name: RoleModelName,
+const RoleSchema = createSchema(Role);
+export const RoleDefinition = {
+  name: Role.name,
   schema: RoleSchema,
 };
-
-export type TRoleModel = Model<Role>;

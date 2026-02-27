@@ -4,6 +4,7 @@ const { join } = require('path');
 module.exports = {
   output: {
     path: join(__dirname, '../../dist/apps/user-access'),
+    clean: true,
     ...(process.env.NODE_ENV !== 'production' && {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
@@ -17,13 +18,18 @@ module.exports = {
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
-      sourceMaps: true,
+      sourceMap: true,
       assets: [
         './src/assets',
         {
-          glob: '**/*',
-          input: 'libs/interfaces/src/lib/proto/user',
-          output: './proto',
+          glob: '**/*.proto',
+          input: 'libs/contracts/src/lib/proto/authorizer',
+          output: './proto/',
+        },
+        {
+          glob: '**/*.proto',
+          input: 'libs/contracts/src/lib/proto/user-access',
+          output: './proto/',
         },
       ],
     }),

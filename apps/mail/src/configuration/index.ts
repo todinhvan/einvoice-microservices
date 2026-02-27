@@ -1,30 +1,34 @@
-import { BaseConfiguration } from '@common/configuration/base.config';
-import { AppConfiguration } from '@common/configuration/app.config';
+import { BaseConfiguration } from '@shared/configurations/base.config';
 import { ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { KafkaConfiguration } from '@common/configuration/kafka.config';
-import { MailConfiguration } from '@common/configuration/mail.config';
-import { TcpConfiguration } from '@common/configuration/tcp.config';
+import { AppConfiguration } from '@shared/configurations/app.config';
+import { KafkaConfiguration } from '@shared/configurations/kafka.config';
+import { MailConfiguration } from '@shared/configurations/mail.config';
 
-class Configuation extends BaseConfiguration {
+export class Configuration extends BaseConfiguration {
   @ValidateNested()
   @Type(() => AppConfiguration)
-  APP_CONFIG = new AppConfiguration();
+  APP_CONFIG: AppConfiguration;
 
   @ValidateNested()
   @Type(() => KafkaConfiguration)
-  KAFKA_CONFIG = new KafkaConfiguration();
+  KAFKA_CONFIG: KafkaConfiguration;
 
   @ValidateNested()
   @Type(() => MailConfiguration)
-  MAIL_CONFIG = new MailConfiguration();
+  MAIL_CONFIG: MailConfiguration;
 
-  @ValidateNested()
-  @Type(() => TcpConfiguration)
-  TCP_SERV = new TcpConfiguration();
+  constructor() {
+    super();
+    this.APP_CONFIG = new AppConfiguration({
+      PORT: Number(process.env['MAIL_PORT']),
+    });
+    this.KAFKA_CONFIG = new KafkaConfiguration();
+    this.MAIL_CONFIG = new MailConfiguration();
+  }
 }
 
-export const CONFIGURATION = new Configuation();
-export type TConfiguration = typeof CONFIGURATION;
+export const CONFIGURATION = new Configuration();
+export type ConfigurationType = Configuration;
 
 CONFIGURATION.validate();

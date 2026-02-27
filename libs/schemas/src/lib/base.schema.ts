@@ -1,11 +1,14 @@
 import { ObjectId } from 'mongodb';
 import { Prop, SchemaFactory, Virtual } from '@nestjs/mongoose';
 import { Type } from '@nestjs/common';
+import { Schema } from 'mongoose';
 
 export class BaseSchema {
   _id: ObjectId;
 
-  @Virtual({ get: (docs: any) => docs?._id?.toString() })
+  @Virtual({
+    get: (docs) => docs?._id?.toString(),
+  })
   id: string;
 
   @Prop({ type: Date, default: new Date() })
@@ -14,16 +17,13 @@ export class BaseSchema {
   @Prop({ type: Date, default: new Date() })
   updatedAt: Date;
 }
-export const createSchema = <TClass = any>(target: Type<TClass>) => {
+
+export const createSchema = <TClass = any>(target: Type<TClass>): Schema<TClass> => {
   const schema = SchemaFactory.createForClass(target);
-  schema.set('toJSON', {
-    virtuals: true,
-  });
-  schema.set('toObject', {
-    virtuals: true,
-  });
-  schema.set('versionKey', false);
   schema.set('timestamps', true);
+  schema.set('versionKey', false);
+  schema.set('toJSON', { virtuals: true });
+  schema.set('toObject', { virtuals: true });
 
   return schema;
 };

@@ -1,22 +1,28 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { ProductModule } from './modules/product/product.module';
 import { ConfigModule } from '@nestjs/config';
-import { CONFIGURATION, TConfiguration } from '../configuration';
-import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
+import { CONFIGURATION, ConfigurationType } from '../configuration';
+import { LoggerMiddleware } from '@shared/middlewares/logger.middleware';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ExceptionInterceptor } from '@common/interceptors/exception.interceptor';
-import { InvoiceModule } from './invoice/invoice.module';
-import { ProductModule } from './product/product.module';
-import { UserModule } from './user/user.module';
-import { AuthorizerModule } from './authorizer/authorizer.module';
-import { UserGuard } from '@common/guards/user.guard';
+import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
+import { InvoiceModule } from './modules/invoice/invoice.module';
+import { UserAccessModule } from './modules/user-access/user-access.module';
+import { AuthorizerModule } from './modules/authorizer/authorizer.module';
+import { UserGuard } from '@shared/guards/user.guard';
+import { PermissionGuard } from '@shared/guards/permission.guard';
 import { ClientsModule } from '@nestjs/microservices';
-import { TCP_SERVICES, TcpProvider } from '@common/configuration/tcp.config';
-import { PermissionGuard } from '@common/guards/permission.guard';
-import { RedisProvider } from '@common/configuration/redis.config';
-import { GRPC_SERVICES, GRpcProvider } from '@common/configuration/grpc.config';
-import { WebhookModule } from './webhook/webhook.module';
-import { ThrottlerProvider } from '@common/configuration/throttler.config';
+import { TcpProvider } from '@shared/configurations/tcp.config';
+import { TcpServices } from '@shared/constants/enums/tcp-service.enum';
+import { RedisProvider } from '@shared/configurations/redis.config';
+import { ThrottlerProvider } from '@shared/configurations/throttler.config';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { GrpcProvider } from '@shared/configurations/grpc.config';
+import { GrpcServices } from '@shared/constants/enums/grpc-service.enum';
+import { WebhookModule } from './modules/webhook/webhook.module';
+import { LoggerModule } from '@shared/observability/logger/logger.module';
+import { ServiceName } from '@shared/constants/enums/common.enum';
+import { MetricsModule } from '@shared/observability/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -24,22 +30,21 @@ import { ThrottlerGuard } from '@nestjs/throttler';
       isGlobal: true,
       load: [() => CONFIGURATION],
     }),
-    InvoiceModule,
+    ClientsModule.registerAsync([GrpcProvider(GrpcServices.AUTHORIZER)]),
     ProductModule,
-    UserModule,
+    InvoiceModule,
+    UserAccessModule,
     AuthorizerModule,
-    ClientsModule.registerAsync([
-      TcpProvider(TCP_SERVICES.AUTHORIZER_SERVICE),
-      GRpcProvider(GRPC_SERVICES.AUTHORIZER_SERVICE),
-    ]),
-    RedisProvider,
     WebhookModule,
+    RedisProvider,
     ThrottlerProvider,
+    LoggerModule.forRoot(ServiceName.BFF),
+    MetricsModule,
   ],
   providers: [
     {
       provide: APP_INTERCEPTOR,
-      useClass: ExceptionInterceptor,
+      useClass: ResponseInterceptor,
     },
     {
       provide: APP_GUARD,
@@ -53,12 +58,13 @@ import { ThrottlerGuard } from '@nestjs/throttler';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    TcpProvider(TcpServices.AUTHORIZER),
   ],
 })
 export class AppModule {
-  static CONFIGURATION: TConfiguration = CONFIGURATION;
+  static Configuration: ConfigurationType = CONFIGURATION;
 
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware).forRoutes('*path'); // localhost:4000/api/v1/*
   }
 }

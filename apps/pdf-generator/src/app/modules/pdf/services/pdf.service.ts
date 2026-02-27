@@ -1,14 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import path from 'path';
-import ejs from 'ejs';
 import fs from 'fs';
+import { ErrorMessages } from '@shared/constants/enums/error-message.enum';
+import ejs from 'ejs';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import puppeteer from 'puppeteer';
 
 @Injectable()
 export class PdfService {
-  async generatePdfFromEjs(templatePath: string, data: any) {
-    const html = await this.renderEjsTemplate(templatePath, data);
-    return this.generatePdfFromHtml(html);
+  async generateHtmlFromEjs(templatePath: string, data: any) {
+    const fullPath = path.resolve(templatePath);
+    if (!fs.existsSync(fullPath)) {
+      throw new NotFoundException(ErrorMessages.TEMPLATE_FILE_NOT_FOUND);
+    }
+
+    const html = await ejs.renderFile<string>(fullPath, data);
+    return await this.generatePdfFromHtml(html);
   }
 
   private async generatePdfFromHtml(html: string): Promise<Uint8Array<ArrayBufferLike>> {
@@ -16,7 +23,6 @@ export class PdfService {
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
@@ -24,13 +30,5 @@ export class PdfService {
 
     await browser.close();
     return pdfBuffer;
-  }
-
-  private renderEjsTemplate(templatePath: string, data: any): Promise<string> {
-    const fullPath = path.resolve(templatePath);
-    if (!fs.existsSync(fullPath)) {
-      throw new NotFoundException('Template file not found');
-    }
-    return ejs.renderFile(fullPath, data);
   }
 }

@@ -1,18 +1,16 @@
 import { Controller } from '@nestjs/common';
 import { AuthorizerService } from '../services/authorizer.service';
 import { GrpcMethod } from '@nestjs/microservices';
-import { VerifyUserTokenGrpcRequest } from '@common/interfaces/grpc/authorizer';
-import { VerifyUserTokenGrpcResponse } from '@common/interfaces/grpc/authorizer/authorizer-response.dto';
-import { Response } from '@common/interfaces/grpc/common/response.interface';
-import { AuthorizerResponse } from '@common/interfaces/tcp/authorizer';
+import { VerifyTokenGrpcRequest } from '@shared/contracts/authorizer/authorizer-request.type';
+import { ResponseGRPC } from '@shared/contracts/grpc/grpc-response.interface';
 
 @Controller()
-export class AuthorizerGrpcController {
+export class UserGrpcController {
   constructor(private readonly authorizerService: AuthorizerService) {}
 
-  @GrpcMethod('AuthorizerService', 'verifyUserToken')
-  async verifyUserToken(params: VerifyUserTokenGrpcRequest): Promise<VerifyUserTokenGrpcResponse> {
-    const result = await this.authorizerService.verifyUserToken(params.token, params.processId);
-    return Response.success<AuthorizerResponse>(result);
+  @GrpcMethod('AuthorizerService', 'verifyToken')
+  async verifyToken(params: VerifyTokenGrpcRequest) {
+    const result = await this.authorizerService.verifyToken(params.token, params.processId);
+    return ResponseGRPC.success(result);
   }
 }

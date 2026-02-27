@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { CONFIGURATION, TConfiguration } from '../configuration';
+import { CONFIGURATION, ConfigurationType } from '../configuration';
+import { MongoProvider } from '@shared/configurations/mongo.config';
 import { RoleModule } from './modules/role/role.module';
-import { MongoProvider } from '@common/configuration/mongo.config';
 import { UserModule } from './modules/user/user.module';
 
 @Module({
@@ -17,5 +17,5 @@ import { UserModule } from './modules/user/user.module';
   ],
 })
 export class AppModule {
-  static CONFIGURATION: TConfiguration = CONFIGURATION;
+  static Configuration: ConfigurationType = CONFIGURATION;
 }

@@ -1,8 +1,11 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Module } from '@nestjs/common';
-import { CONFIGURATION, TConfiguration } from '../configuration';
 import { ConfigModule } from '@nestjs/config';
+import { CONFIGURATION, ConfigurationType } from '../configuration';
 import { InvoiceModule } from './modules/invoice/invoice.module';
-import { PaymentModule } from './modules/payment/payment.module';
+import { LoggerModule } from '@shared/observability/logger/logger.module';
+import { ServiceName } from '@shared/constants/enums/common.enum';
+import { MetricsModule } from '@shared/observability/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -11,9 +14,10 @@ import { PaymentModule } from './modules/payment/payment.module';
       load: [() => CONFIGURATION],
     }),
     InvoiceModule,
-    PaymentModule,
+    LoggerModule.forRoot(ServiceName.INVOICE),
+    MetricsModule,
   ],
 })
 export class AppModule {
-  static CONFIGURATION: TConfiguration = CONFIGURATION;
+  static Configuration: ConfigurationType = CONFIGURATION;
 }

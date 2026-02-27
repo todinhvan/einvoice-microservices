@@ -1,4 +1,4 @@
-export enum INVOICE_STATUS {
+export enum InvoiceStatuses {
   CREATED = 'created',
   SENT = 'sent',
   PAID = 'paid',

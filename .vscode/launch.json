@@ -19,41 +19,11 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug invoice with Nx",
-      "runtimeExecutable": "pnpm exec",
-      "runtimeArgs": ["nx", "serve", "invoice"],
-      "env": {
-        "NODE_OPTIONS": "--inspect=9230"
-      },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
-      "sourceMaps": true,
-      "outFiles": ["${workspaceFolder}/apps/invoice/dist/**/*.(m|c|)js", "!**/node_modules/**"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug invoice with Nx",
-      "runtimeExecutable": "pnpm exec",
-      "runtimeArgs": ["nx", "serve", "invoice"],
-      "env": {
-        "NODE_OPTIONS": "--inspect=9231"
-      },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
-      "sourceMaps": true,
-      "outFiles": ["${workspaceFolder}/apps/invoice/dist/**/*.(m|c|)js", "!**/node_modules/**"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
       "name": "Debug bff with Nx",
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "bff"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9232"
+        "NODE_OPTIONS": "--inspect=9230"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -68,7 +38,7 @@
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "product"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9233"
+        "NODE_OPTIONS": "--inspect=9231"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -83,7 +53,7 @@
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "user-access"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9234"
+        "NODE_OPTIONS": "--inspect=9232"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -98,7 +68,7 @@
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "authorizer"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9235"
+        "NODE_OPTIONS": "--inspect=9233"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -113,7 +83,7 @@
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "pdf-generator"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9236"
+        "NODE_OPTIONS": "--inspect=9234"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -128,7 +98,7 @@
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "media"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9237"
+        "NODE_OPTIONS": "--inspect=9235"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -143,13 +113,28 @@
       "runtimeExecutable": "pnpm exec",
       "runtimeArgs": ["nx", "serve", "mail"],
       "env": {
-        "NODE_OPTIONS": "--inspect=9238"
+        "NODE_OPTIONS": "--inspect=9236"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": ["<node_internals>/**"],
       "sourceMaps": true,
       "outFiles": ["${workspaceFolder}/apps/mail/dist/**/*.(m|c|)js", "!**/node_modules/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug payment with Nx",
+      "runtimeExecutable": "pnpm exec",
+      "runtimeArgs": ["nx", "serve", "payment"],
+      "env": {
+        "NODE_OPTIONS": "--inspect=9237"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/apps/payment/dist/**/*.(m|c|)js", "!**/node_modules/**"]
     }
   ]
 }

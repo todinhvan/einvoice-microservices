@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package GRPC_USER_ACCESS;
+
+service UserAccessService {
+  rpc getUserByKeycloakUserId(UserByKeycloakUserIdRequest) returns (UserResponse);
+}
+
+message UserByKeycloakUserIdRequest {
+  string keycloakUserId = 1;
+  string processId = 2;
+}
+
+message Role {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string permissions = 4;
+}
+
+message User {
+  string id = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string email = 4;
+  string keycloakUserId = 5;
+  repeated Role roles = 6;
+}
+
+message UserResponse {
+  int32 status = 1;
+  string message = 2;
+  User data = 3;
+  string error = 4;
+}

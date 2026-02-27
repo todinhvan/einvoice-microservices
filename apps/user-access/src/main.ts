@@ -7,33 +7,37 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { initTracing } from '@shared/observability/tracing';
+import { ServiceName } from '@shared/constants/enums/common.enum';
+
+initTracing(ServiceName.USER_ACCESS);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const globalPrefix = AppModule.Configuration.GLOBAL_PREFIX;
+  const port = AppModule.Configuration.APP_CONFIG.PORT;
+
+  app.setGlobalPrefix(globalPrefix);
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
     options: {
-      host: AppModule.CONFIGURATION.TCP_SERV.TCP_USER_ACCESS_SERVICE.options.host,
-      port: AppModule.CONFIGURATION.TCP_SERV.TCP_USER_ACCESS_SERVICE.options.port,
+      host: AppModule.Configuration.TCP_CONFIG.TCP_USER_ACCESS.options.host,
+      port: AppModule.Configuration.TCP_CONFIG.TCP_USER_ACCESS.options.port,
     },
   });
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
-      url: AppModule.CONFIGURATION.GRPC_SERV.GRPC_USER_ACCESS_SERVICE.options.url,
-      package: AppModule.CONFIGURATION.GRPC_SERV.GRPC_USER_ACCESS_SERVICE.options.package,
-      protoPath: AppModule.CONFIGURATION.GRPC_SERV.GRPC_USER_ACCESS_SERVICE.options.protoPath,
+      package: AppModule.Configuration.GRPC_CONFIG.GRPC_USER_ACCESS.options.package,
+      protoPath: AppModule.Configuration.GRPC_CONFIG.GRPC_USER_ACCESS.options.protoPath,
+      url: AppModule.Configuration.GRPC_CONFIG.GRPC_USER_ACCESS.options.url,
     },
   });
 
   await app.startAllMicroservices();
-
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
-  const port = process.env.USER_ACCESS_PORT || 3333;
   await app.listen(port);
-  Logger.log(`🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
+  Logger.log(`User Access Service is running on: http://localhost:${port}/${globalPrefix}/user-access`);
 }
 
 bootstrap();

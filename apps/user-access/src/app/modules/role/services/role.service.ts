@@ -1,19 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { RoleRepository } from '../repositories/role.repository';
+import { toRoleResponse } from '../mappers/role.mapper';
 
 @Injectable()
 export class RoleService {
   constructor(private readonly roleRepository: RoleRepository) {}
 
-  getAll() {
-    return this.roleRepository.getAll();
-  }
-
-  getById(id: string) {
-    return this.roleRepository.getById(id);
-  }
-
-  getByName(name: string) {
-    return this.roleRepository.getByName(name);
+  async getAllRoles() {
+    const roles = await this.roleRepository.findAll();
+    return roles.map((role) => toRoleResponse(role));
   }
 }

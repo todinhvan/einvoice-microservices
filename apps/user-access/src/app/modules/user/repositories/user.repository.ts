@@ -1,25 +1,31 @@
-import { TUserModel, User, UserModelName } from '@common/schemas/user.schema';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { User, UserDefinition } from '@shared/schemas/user.schema';
+import { Model } from 'mongoose';
+import { ObjectId } from 'mongodb';
+import { Role } from '@shared/schemas/role.schema';
 
 @Injectable()
 export class UserRepository {
-  constructor(@InjectModel(UserModelName) private userModel: TUserModel) {}
+  constructor(@InjectModel(UserDefinition.name) private readonly model: Model<User>) {}
 
-  create(data: Partial<User>) {
-    return this.userModel.create(data);
+  create(user: User) {
+    return this.model.create(user);
   }
 
-  getAll() {
-    return this.userModel.find().exec();
+  findById(id: ObjectId) {
+    return this.model.findById(id).populate<{ roles: Role[] }>('roles').exec();
   }
 
-  getByUserId(userId: string) {
-    return this.userModel.findOne({ userId }).populate('roles').exec();
+  findByKeycloakUserId(keycloakUserId: string) {
+    return this.model.findOne({ keycloakUserId }).populate<{ roles: Role[] }>('roles').exec();
   }
 
-  async exists(email: string) {
-    const result = await this.userModel.exists({ email }).exec();
-    return !!result;
+  findAll() {
+    return this.model.find().populate<{ roles: Role[] }>('roles').exec();
+  }
+
+  exists(email: string) {
+    return this.model.exists({ email }).exec();
   }
 }

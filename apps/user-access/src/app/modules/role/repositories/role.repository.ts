@@ -1,20 +1,13 @@
-import { RoleModelName, TRoleModel } from '@common/schemas/role.schema';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Role, RoleDefinition } from '@shared/schemas/role.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class RoleRepository {
-  constructor(@InjectModel(RoleModelName) private readonly roleModel: TRoleModel) {}
+  constructor(@InjectModel(RoleDefinition.name) private readonly model: Model<Role>) {}
 
-  getAll() {
-    return this.roleModel.find().exec();
-  }
-
-  getById(id: string) {
-    return this.roleModel.findById(id).exec();
-  }
-
-  getByName(name: string) {
-    return this.roleModel.findOne({ name }).exec();
+  findAll() {
+    return this.model.find().exec();
   }
 }

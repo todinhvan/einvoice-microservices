@@ -1,30 +1,28 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSION } from '@common/constants/enums/permission.enum';
-import { Permissions } from '@common/decorators/permission.decorator';
-import { MetadataKeys } from '@common/constants/common.constant';
-import { AuthorizerResponse } from '@common/interfaces/tcp/authorizer';
+import { Observable } from 'rxjs';
+import { Permissions } from '@shared/decorators/permission.decorator';
+import { PERMISSION } from '@shared/constants/enums/permission.enum';
+import { MetadataKeys } from '@shared/constants/enums/metadata-key.enum';
+import { AuthorizedMetadata } from '@shared/contracts/authorizer/authorizer-response.type';
+import { ErrorMessages } from '@shared/constants/enums/error-message.enum';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
-    const requiredPermissions = this.reflector.get<PERMISSION[]>(Permissions, context.getHandler());
-
-    if (!requiredPermissions) {
+    const permissions = this.reflector.get<PERMISSION[]>(Permissions, context.getHandler());
+    if (!permissions) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest();
-    const userData = request[MetadataKeys.USER_DATA] as AuthorizerResponse;
-    const userPermissions = userData.metadata.permissions || [];
+    const metadata = request[MetadataKeys.AUTHORIZED_DATA] as AuthorizedMetadata;
 
-    const isValid = requiredPermissions.every((permission) => userPermissions.includes(permission));
-
+    const isValid = permissions.every((permission) => metadata.permissions.includes(permission));
     if (!isValid) {
-      throw new ForbiddenException('Permissions denied');
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN);
     }
 
     return isValid;
